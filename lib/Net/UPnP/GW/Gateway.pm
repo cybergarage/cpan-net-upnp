@@ -11,12 +11,13 @@ use Net::UPnP::HTTP;
 use Net::UPnP::Device;
 use Net::UPnP::Service;
 
-use vars qw($_DEVICE $DEVICE_TYPE $WANIPCONNECTION_SERVICE_TYPE);
+use vars qw($_DEVICE $DEVICE_TYPE $WANIPCONNECTION_SERVICE_TYPE $WANCOMMONINTERFACECONFIG_SERVICE_TYPE);
 
 $_DEVICE = 'device';
 
 $DEVICE_TYPE = 'urn:schemas-upnp-org:device:InternetGatewayDevice:1';
 $WANIPCONNECTION_SERVICE_TYPE = 'urn:schemas-upnp-org:service:WANIPConnection:1';
+$WANCOMMONINTERFACECONFIG_SERVICE_TYPE = 'urn:schemas-upnp-org:service:WANCommonInterfaceConfig:1';
 
 #------------------------------
 # new
@@ -250,6 +251,36 @@ sub deleteportmapping {
 	return 1;
 }
 
+#------------------------------
+# gettotalbytesrecieved
+#------------------------------
+
+sub gettotalbytesrecieved {
+	my($this) = shift;
+	
+	my (
+		$dev,
+		$wanconif_service,
+		$action_res,
+		$arg_list,
+		$totalBytes,
+	);
+	
+	$dev = $this->getdevice();
+	$wanconif_service = $dev->getservicebyname($Net::UPnP::GW::Gateway::WANCOMMONINTERFACECONFIG_SERVICE_TYPE);
+	unless ($wanconif_service) {
+		return "";
+	}
+	$action_res = $wanconif_service->postaction("GetTotalBytesReceived");
+	if ($action_res->getstatuscode() != 200) {
+		return "";
+	}
+	$arg_list = $action_res->getargumentlist();
+	$totalBytes = $arg_list->{'NewTotalBytesReceived'};
+	
+	return $totalBytes;
+}
+
 1;
 
 __END__
@@ -369,15 +400,13 @@ Add a new specified port mapping.
 
 Delete the specified port mapping.
 
+=item B<gettotalbytesrecieved> - Total recieved bytes.
+
+    $gw->gettotalbytesrecieved();
+
+Get the total recieved bytes.
+
 =back
-
-=head1 SEE ALSO
-
-L<Net::UPnP::GW::Content>
-
-L<Net::UPnP::GW::Item>
-
-L<Net::UPnP::GW::Container>
 
 =head1 AUTHOR
 
