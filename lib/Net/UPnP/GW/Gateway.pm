@@ -281,6 +281,36 @@ sub gettotalbytesrecieved {
 	return $totalBytes;
 }
 
+#------------------------------
+# gettotalbytessent
+#------------------------------
+
+sub gettotalbytessent {
+	my($this) = shift;
+
+	my (
+		$dev,
+		$wanconif_service,
+		$action_res,
+		$arg_list,
+		$totalBytes,
+	);
+
+	$dev = $this->getdevice();
+	$wanconif_service = $dev->getservicebyname($Net::UPnP::GW::Gateway::WANCOMMONINTERFACECONFIG_SERVICE_TYPE);
+	unless ($wanconif_service) {
+		return "";
+	}
+	$action_res = $wanconif_service->postaction("GetTotalBytesSent");
+	if ($action_res->getstatuscode() != 200) {
+		return "";
+	}
+	$arg_list = $action_res->getargumentlist();
+	$totalBytes = $arg_list->{'NewTotalBytesSent'};
+
+	return $totalBytes;
+}
+
 1;
 
 __END__
