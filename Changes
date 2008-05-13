@@ -1,7 +1,7 @@
 Revision history for Perl extension UPnP.
 
-2008-05-08 Satoshi Konno <skonno@cybergarage.org>
-        * v1.2.2
+2008-05-13 Satoshi Konno <skonno@cybergarage.org>
+        * v1.2.4
 
 2008-05-07 Christian KrauBe
 	* Added Net::UPnP::GW::gettotalbytessent().
