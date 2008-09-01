@@ -1,5 +1,8 @@
 Revision history for Perl extension UPnP.
 
+2008-08-31 Satoshi Konno <skonno@cybergarage.org>
+	* Added Net::UPnP::AV::MediaRenderer.
+	
 2008-05-13 Satoshi Konno <skonno@cybergarage.org>
         * v1.2.4
 
