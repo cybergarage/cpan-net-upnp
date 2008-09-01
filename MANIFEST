@@ -11,6 +11,7 @@ lib/Net/UPnP/AV/Container.pm
 lib/Net/UPnP/AV/Content.pm
 lib/Net/UPnP/AV/Item.pm
 lib/Net/UPnP/AV/MediaServer.pm
+lib/Net/UPnP/AV/MediaRenderer.pm
 lib/Net/UPnP/GW/Gateway.pm
 lib/Net/UPnP/ControlPoint.pm
 lib/Net/UPnP/Device.pm
