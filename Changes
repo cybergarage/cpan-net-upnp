@@ -1,10 +1,11 @@
 Revision history for Perl extension UPnP.
 
-2008-08-31 Satoshi Konno <skonno@cybergarage.org>
+2008-10-13 Satoshi Konno <skonno@cybergarage.org>
+	* v1.4
 	* Added Net::UPnP::AV::MediaRenderer.
 	
 2008-05-13 Satoshi Konno <skonno@cybergarage.org>
-        * v1.2.4
+	* v1.2.4
 
 2008-05-07 Christian KrauBe
 	* Added Net::UPnP::GW::gettotalbytessent().
@@ -14,7 +15,7 @@ Revision history for Perl extension UPnP.
 	* Added a sample to use Net::UPnP::GW::gettotalbytesrecieved() into exsample/upnpgwdump.pl.
 
 2006-03-13 Satoshi Konno <skonno@cybergarage.org>
-        * v1.2.1
+    * v1.2.1
 	* Added QueryResponse.pm to the package.
 
 2006-03-02 Satoshi Konno <skonno@cybergarage.org>
