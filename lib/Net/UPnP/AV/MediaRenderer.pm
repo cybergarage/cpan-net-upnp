@@ -195,11 +195,11 @@ Net::UPnP::AV::MediaRenderer - Perl extension for UPnP.
         }
         my $friendlyname = $dev->getfriendlyname(); 
         print "[$devNum] : " . $friendlyname . "\n";
-	    my $mediaServer = Net::UPnP::AV::MediaRenderer->new();
-        $mediaServer->setdevice($dev);
-        $mediaServer->stop();
-        $mediaServer->setAVTransportURI(CurrentURI => 'http://xxx.xxx.xxx.xxx/xxxx.mpg');
-        $mediaServer->play(); 
+        my $renderer = Net::UPnP::AV::MediaRenderer->new();
+        $renderer->setdevice($dev);
+        $renderer->stop();
+        $renderer->setAVTransportURI(CurrentURI => 'http://xxx.xxx.xxx.xxx/xxxx.mpg');
+        $renderer->play(); 
         $devNum++;
     }
  
@@ -211,9 +211,9 @@ The package is a extention UPnP/AV media server.
 
 =over 4
 
-=item B<new> - create new Net::UPnP::AV::MediaServer.
+=item B<new> - create new Net::UPnP::AV::MediaRenderer.
 
-    $mservier = Net::UPnP::AV::MediaServer();
+    $renderer = Net::UPnP::AV::MediaRenderer();
 
 Creates a new object. Read `perldoc perlboot` if you don't understand that.
 
@@ -221,13 +221,13 @@ The new object is not associated with any UPnP devices. Please use setdevice() t
 
 =item B<setdevice> - set a UPnP devices
 
-    $mservier->setdevice($dev);
+    $renderer->setdevice($dev);
 
 Set a device to the object.
 
 =item B<setAVTransportURI> - set a current content.
 	
-    @action_response = $mediaRenderer->setAVTransportURI(
+    @action_response = $renderer->setAVTransportURI(
                                         InstanceID => $instanceID, # 0	
                                         CurrentURI => $url, # ''
                                         CurrentURIMetaData => $metaData, # "'
@@ -237,7 +237,7 @@ Set a current content to play, L<Net::UPnP::ActionResponse>.
 
 =item B<setNextAVTransportURI> - set a next content.
  
-	@action_response = $mediaRenderer->setNextAVTransportURI(
+	@action_response = $renderer->setNextAVTransportURI(
 										InstanceID => $instanceID, # 0	
                                         NextURI => $url, # ''
                                         NextURIMetaData => $metaData, # "'
@@ -247,7 +247,7 @@ Set a next content to play, L<Net::UPnP::ActionResponse>.
  
 =item B<play> - play.
 	
-    @action_response = $mediaRenderer->play(
+    @action_response = $renderer->play(
 										InstanceID => $instanceID, # 0	
 										Speed => $url, # 1
  										);
@@ -256,7 +256,7 @@ Play the specified content.
 
 =item B<stop> - stop.
  
-    @action_response = $mediaRenderer->stop(
+    @action_response = $renderer->stop(
 										InstanceID => $instanceID, # 0	
 										);
  
