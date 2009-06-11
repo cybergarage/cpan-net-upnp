@@ -56,6 +56,10 @@ sub post {
 		$res,
 		);
 
+	# Thanks for miz <miz999 at gmail.com> (2009/02/13)
+	$req_content =~ s/\r//g;
+	$req_content =~ s/\n/\r\n/g;
+	
 	$req_content_len = length($req_content);
 	
 $req_header = <<"REQUEST_HEADER";

@@ -1,8 +1,10 @@
 Revision history for Perl extension UPnP.
 
-2009-06-10 Tim Engler <engler@gmail.com>
-	* v1.4.1
+2009-06-10 Tim Engler <engler at gmail.com>
 	* Fixed Net:UPnP::Device::getdescription() to use a non-greedy match.
+
+2009-02-13 miz <miz999 at gmail.com>
+	* Fixed Net:UPnP::HTTP::post() to convert the line feed to CRLF.
 
 2008-10-15 Satoshi Konno <skonno@cybergarage.org>
 	* v1.4.1
