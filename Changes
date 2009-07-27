@@ -1,5 +1,11 @@
 Revision history for Perl extension UPnP.
 
+2008-10-15 Satoshi Konno <skonno@cybergarage.org>
+	* v1.2.4
+	* Added Net::UPnP::SetDebug().
+	* Fixed Net:UPnP::ControlPoint::search() not to use uninitialize value on the debug mode.
+	* Added two examples, upnpchk.pl and upnpavchk.pl, to check UPnP and UPnP/AV devices.
+
 2009-06-10 Tim Engler <engler at gmail.com>
 	* Fixed Net:UPnP::Device::getdescription() to use a non-greedy match.
 

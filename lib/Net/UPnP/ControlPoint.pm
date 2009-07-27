@@ -45,7 +45,6 @@ sub search {
 		$dev_addr,
 		$dev_port,
 		$dev_path,
-		$dev_friendly_name,
 		$http_req,
 		$post_res,
 		$post_content,
@@ -110,7 +109,6 @@ SSDP_SEARCH_MSG
 		$dev->setdescription($post_content);
 	
 		if ($Net::UPnP::DEBUG) {
-	 		print "friendlyName = $dev_friendly_name\n";
 	 		print "ssdp = $ssdp_res_msg\n";
 	 		print "description = $post_content\n";
 	 	}
