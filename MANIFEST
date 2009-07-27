@@ -1,8 +1,10 @@
 Changes
-examples/dms2vodcast.pl
-examples/upnpavdump.pl
-examples/upnpavsimple.pl
 examples/upnpdump.pl
+examples/upnpchk.pl
+examples/upnpavdump.pl
+examples/upnpavchk.pl
+examples/upnpavsimple.pl
+examples/dms2vodcast.pl
 examples/upnpgwdump.pl
 examples/upnpgwtool.pl
 lib/Net/UPnP.pm
