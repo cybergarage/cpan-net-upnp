@@ -164,6 +164,7 @@ sub getcontentlist {
 			);
 	$numberReturned = 0;
 	if ($action_res->getstatuscode() == 200) {
+		$arg_list = $action_res->getargumentlist();
 		$numberReturned = int($arg_list->{'NumberReturned'});
 	}
 	if ($numberReturned <= 0) {
@@ -176,6 +177,7 @@ sub getcontentlist {
 			);
 		$requestedCount = 999;
 		if ($action_res->getstatuscode() == 200) {
+			$arg_list = $action_res->getargumentlist();
 			$totalMatches = int($arg_list->{'TotalMatches'});
 			if (1 < $totalMatches) {
 				$requestedCount = $totalMatches;
