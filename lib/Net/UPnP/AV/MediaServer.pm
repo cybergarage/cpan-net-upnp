@@ -149,6 +149,9 @@ sub getcontentlist {
 		$content,
 		$container,
 		$item,
+		$numberReturned,
+		$requestedCount,
+		$totalMatches
 	);
 	
 	@content_list = ();
@@ -159,8 +162,35 @@ sub getcontentlist {
 			RequestedCount => $args{RequestedCount},
 			SortCriteria => $args{SortCriteria}
 			);
-	if ($action_res->getstatuscode() != 200) {
-		return @content_list;
+	$numberReturned = 0;
+	if ($action_res->getstatuscode() == 200) {
+		$numberReturned = int($arg_list->{'NumberReturned'});
+	}
+	if ($numberReturned <= 0) {
+		$action_res = $this-> browsemetadata(
+				ObjectID => $args{ObjectID},
+				Filter => $args{Filter},
+				StartingIndex => $args{StartingIndex},
+				RequestedCount => $args{RequestedCount},
+				SortCriteria => $args{SortCriteria}
+			);
+		$requestedCount = 999;
+		if ($action_res->getstatuscode() == 200) {
+			$totalMatches = int($arg_list->{'TotalMatches'});
+			if (1 < $totalMatches) {
+				$requestedCount = $totalMatches;
+			}
+		}
+		$action_res = $this->browsedirectchildren(
+				ObjectID => $args{ObjectID},
+				Filter => $args{Filter},
+				StartingIndex => $args{StartingIndex},
+				RequestedCount => $requestedCount,
+				SortCriteria => $args{SortCriteria}
+			);
+		if ($action_res->getstatuscode() != 200) {
+			return @content_list;
+		}
 	}
 	$arg_list = $action_res->getargumentlist();
 	unless ($arg_list->{'Result'}) {

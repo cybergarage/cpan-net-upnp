@@ -1,5 +1,8 @@
 Revision history for Perl extension UPnP.
 
+2010-08-07 Satoshi Konno <skonno@cybergarage.org>
+	* Changed UPnP::AV::MediaServer::getcontentlist() to get contents from non standard UPnP/AV media servers.
+
 2009-07-27 Satoshi Konno <skonno@cybergarage.org>
 	* v1.4.2
 	* Added Net::UPnP::SetDebug().
