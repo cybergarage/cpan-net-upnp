@@ -112,9 +112,24 @@ REQUEST_HEADER
 	if($res_header =~ m/^Content-Length[: ]*(\d+)/i ) {
 		$res_content_len = $1
 	}
+
+	my $res_chunked = 0;
+	if($res_header =~ m/^Transfer-Encoding[: ]*chunked/im ) {
+		$res_chunked = 1;
+	}
 	
 	$res_content = "";
-	if ($res_content_len) {
+	if ($res_chunked) {
+		while(<HTTP_SOCK>) {
+			s/[\r\n]//g;
+			my $length = hex($_);
+			my $chunk;
+
+			read(HTTP_SOCK, $chunk, $length);
+			$res_content .= $chunk;
+		}
+	}
+	elsif ($res_content_len) {
 		read(HTTP_SOCK, $res_content, $res_content_len);
 	}
 	else {
