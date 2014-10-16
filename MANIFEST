@@ -27,3 +27,4 @@ MANIFEST	This list of files
 README
 t/UPnP.t
 META.yml       Module meta-data (added by MakeMaker)
+META.json

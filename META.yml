@@ -1,0 +1,63 @@
+---
+abstract: 'Perl extension for UPnP'
+author:
+  - 'Satoshi Konno <skonno@cybergarage.org>'
+build_requires: {}
+configure_requires:
+  Module::Build: 0.39
+dynamic_config: 1
+generated_by: 'Module::Build version 0.3901, CPAN::Meta::Converter version 2.120921'
+license: bsd
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Net-UPnP
+provides:
+  Net::UPnP:
+    file: lib/Net/UPnP.pm
+    version: v1.4.3
+  Net::UPnP::AV::Container:
+    file: lib/Net/UPnP/AV/Container.pm
+    version: 0
+  Net::UPnP::AV::Content:
+    file: lib/Net/UPnP/AV/Content.pm
+    version: 0
+  Net::UPnP::AV::Item:
+    file: lib/Net/UPnP/AV/Item.pm
+    version: 0
+  Net::UPnP::AV::MediaRenderer:
+    file: lib/Net/UPnP/AV/MediaRenderer.pm
+    version: 0
+  Net::UPnP::AV::MediaServer:
+    file: lib/Net/UPnP/AV/MediaServer.pm
+    version: 0
+  Net::UPnP::ActionResponse:
+    file: lib/Net/UPnP/ActionResponse.pm
+    version: 0
+  Net::UPnP::ControlPoint:
+    file: lib/Net/UPnP/ControlPoint.pm
+    version: 0
+  Net::UPnP::Device:
+    file: lib/Net/UPnP/Device.pm
+    version: 0
+  Net::UPnP::GW::Gateway:
+    file: lib/Net/UPnP/GW/Gateway.pm
+    version: 0
+  Net::UPnP::HTTP:
+    file: lib/Net/UPnP/HTTP.pm
+    version: 0
+  Net::UPnP::HTTPResponse:
+    file: lib/Net/UPnP/HTTPResponse.pm
+    version: 0
+  Net::UPnP::QueryResponse:
+    file: lib/Net/UPnP/QueryResponse.pm
+    version: 0
+  Net::UPnP::Service:
+    file: lib/Net/UPnP/Service.pm
+    version: 0
+requires:
+  Test::More: 0
+  version: 0
+resources:
+  license: http://opensource.org/licenses/bsd-license.php
+version: v1.4.3
