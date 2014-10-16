@@ -1,5 +1,13 @@
 Revision history for Perl extension UPnP.
 
+2014-10-16 Satoshi Konno <skonno@cybergarage.org>
+	* v1.4.3
+	* Added Build.PL for Module::Build.
+	* Updated MANIFEST and Makefile.PL.
+
+2013-12-27 Thomas Liske <thomas at fiasko-nw.net>
+	* Implement handling of chunked "Transfer-Encoding".
+
 2010-08-07 Satoshi Konno <skonno@cybergarage.org>
 	* Changed UPnP::AV::MediaServer::getcontentlist() to get contents from non standard UPnP/AV media servers.
 
