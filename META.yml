@@ -15,7 +15,7 @@ name: Net-UPnP
 provides:
   Net::UPnP:
     file: lib/Net/UPnP.pm
-    version: v1.4.3
+    version: v1.4.4
   Net::UPnP::AV::Container:
     file: lib/Net/UPnP/AV/Container.pm
     version: 0
