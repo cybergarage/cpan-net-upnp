@@ -29,7 +29,7 @@
    "provides" : {
       "Net::UPnP" : {
          "file" : "lib/Net/UPnP.pm",
-         "version" : "v1.4.4"
+         "version" : "v1.4.5"
       },
       "Net::UPnP::AV::Container" : {
          "file" : "lib/Net/UPnP/AV/Container.pm",
