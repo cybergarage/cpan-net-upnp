@@ -27,4 +27,6 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: test
-        run: make test
+        run: |
+            perl Makefile.PL
+            make test
