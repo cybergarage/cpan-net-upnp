@@ -1,6 +1,6 @@
 # Net::UPnP
 
-![CPAN](https://img.shields.io/cpan/v/Net-UPnP)
+[![CPAN](https://img.shields.io/cpan/v/Net-UPnP)](https://metacpan.org/pod/Net::UPnP)
 [![make](https://github.com/cybergarage/cpan-net-upnp/actions/workflows/make.yml/badge.svg)](https://github.com/cybergarage/cpan-net-upnp/actions/workflows/make.yml)
 
 The README is used to introduce the module and provide instructions on
