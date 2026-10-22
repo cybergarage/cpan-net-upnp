@@ -1,0 +1,163 @@
+{
+  "documentType": "codex-security.scan-manifest",
+  "scan": {
+    "artifacts": [
+      {
+        "mediaType": "application/json",
+        "path": "findings.json",
+        "sha256": "8cf9b81388694c7ffeab03c74a3847ec6f0f94fbfa0be5285cd970c1bd25451e"
+      },
+      {
+        "mediaType": "application/json",
+        "path": "coverage.json",
+        "sha256": "00673370b51bbbdc789626dc94bb24e52de0e7df325f135456faf0f7cdb0219d"
+      }
+    ],
+    "completedAt": "2026-10-22T18:29:42.031715Z",
+    "coverageRef": "coverage.json",
+    "findingsRef": "findings.json",
+    "id": "2c7c7084-978d-4241-b23d-b28670a7edb9",
+    "preservedSources": {
+      "checkpoint-heads/421bb48583e8d6070ed4acdbe5b94941cbdf2756f2be111294f4243f76d2f583.json": "421bb48583e8d6070ed4acdbe5b94941cbdf2756f2be111294f4243f76d2f583",
+      "checkpoints/0691ed62df479d4c48526641efca26af82160092f6a88b365513d4566c6b3265.json": "76b510123664b4f5d486cbd5c7819b906a53a83524cc405eb94baeda8a34462e",
+      "checkpoints/0feb74c0d056ed716c9bd4d99f69e29e15ab2e265a13ea1c0dd366e862a18cb3.json": "0feb74c0d056ed716c9bd4d99f69e29e15ab2e265a13ea1c0dd366e862a18cb3",
+      "checkpoints/10c13c3c4c21ced6d47c5c8c7690bc75388af2757589a1c7b0cd3189b0b03b2f.json": "3d4d492b98c3d1853105bd38114f5335f20a8c1ae5b16df258d500e7b8450f9a",
+      "checkpoints/32c9dc7a8bf70f29b17d76f2d08196ae8a41e90d9f3c7563bf9798e3d50f263c.json": "9c3f50d3cb1e33522acb720a64220f50f2c5e382b3ce811cd4986d0197b8aa17",
+      "checkpoints/3af6e58963127dec49882832d9bfd9693f58fee9c2da05e1e80161b9e20cc2f1.json": "ea4e67ee109b685bbc1024464932353323f678cb00fa142c93076a03880c8e97",
+      "checkpoints/3ec4c8397a505bb76fd61d2fa1db8cd3e565e79f063c13daa33e5a9b55cbd36c.json": "3ec4c8397a505bb76fd61d2fa1db8cd3e565e79f063c13daa33e5a9b55cbd36c",
+      "checkpoints/4f44d03c84dce261f307cb451e83d99cc4c282f4e91af14ae5e05d4b27ab5a96.json": "eb1bc03e015dde67ac1c69e3e0a2dc9d5aed3500c1326603587c6557500b03b2",
+      "checkpoints/6553f803ecde765e363bbf7454a90beed33c0adf18b2518e1d124c0de493757d.json": "6553f803ecde765e363bbf7454a90beed33c0adf18b2518e1d124c0de493757d",
+      "checkpoints/71d13847f50ca6e62f0e3d7c18fb20e4a1f75bf51d704aaf4a69cb2c4035918f.json": "71d13847f50ca6e62f0e3d7c18fb20e4a1f75bf51d704aaf4a69cb2c4035918f",
+      "checkpoints/74c2ce0d3567f6d12e93092f38173e40aeb7ac7c3958172b56e8d67cf04d995d.json": "7d62de8421a2475f02dca5db61107fd7854bec93c4aa2d359d5b5b2039698b96",
+      "checkpoints/836ebdfa659691bf1877d7453341413979b094bc38d200c20bdfa99f30edc1f3.json": "9620279b58d9b93289fa35b05f0e4838e2d75c0525e81823ffe0f0c4d6b75a6f",
+      "checkpoints/879f6939b1d460c9b4bc502f699f02f7b55cceaf7e1425e2682e34901dade17c.json": "879f6939b1d460c9b4bc502f699f02f7b55cceaf7e1425e2682e34901dade17c",
+      "checkpoints/8ebb6481f0de5abe3c01515304f99bd17237ffcc0c1fb29d40f441df1a1b6663.json": "ccec2a887c88d8668709f7597129bb1be3124946be773dcabdf9d038bb9402f2",
+      "checkpoints/a3d3b63463f32d2eaa8229609bcc3b0d0ec871de190c491ac8282e976ea00bbe.json": "0dc0b710a6a7d238279f4a3c7981739afe188edd50827904030cac312ab8ae38",
+      "checkpoints/b9c40b965ae439e4f73f019e335589b4e42a322c87f9830635f76c61c7861a42.json": "b9c40b965ae439e4f73f019e335589b4e42a322c87f9830635f76c61c7861a42",
+      "checkpoints/c4182e9c2a50706767e8f290bf24409ce8a66034d54abb32421f0ac68f8b1220.json": "c4182e9c2a50706767e8f290bf24409ce8a66034d54abb32421f0ac68f8b1220",
+      "checkpoints/d2bf436b9090362219324cd76c7d38fb71ccc2b07e99e3ccc5922988e80aa2f7.json": "d2bf436b9090362219324cd76c7d38fb71ccc2b07e99e3ccc5922988e80aa2f7",
+      "checkpoints/d33b589814ddc0ad2acaa17f391116d1e2f1b51cd4f77143d67c850764ff2bc5.json": "d33b589814ddc0ad2acaa17f391116d1e2f1b51cd4f77143d67c850764ff2bc5",
+      "checkpoints/d51be3ec761ab960d0ecb34ac9092b3191dbc092b98f0cda8632c71d097f5cf9.json": "d51be3ec761ab960d0ecb34ac9092b3191dbc092b98f0cda8632c71d097f5cf9",
+      "checkpoints/ede4f26425182d32c9894ce0cf9f2017ab6b0b5488fa7cb518c5809370ce7db1.json": "0260c9d22dfd81209dc4717ac04530551976d8b4f1775b27e5334418d211b738",
+      "checkpoints/f3b5b0549614812b7b0b9c668e7e409a53e81a9075716f3ef850b3eeea37ec7f.json": "fb4bca0b99cd3cf6e955093d6e4a8c147b098066ebd94e3fe9e6f16912dc4b31",
+      "checkpoints/fc21a3af9fb52e9f974e6210d8f12b59715306ede63b2cf2bcd3b6e258d84f5e.json": "fc21a3af9fb52e9f974e6210d8f12b59715306ede63b2cf2bcd3b6e258d84f5e",
+      "source-order/785cd7b345a298513a8fc618fe5bf5327860ec047673b29c00f6716b21326196.json": "785cd7b345a298513a8fc618fe5bf5327860ec047673b29c00f6716b21326196"
+    },
+    "producer": {
+      "name": "codex-security-plugin",
+      "version": "0.1.32"
+    },
+    "scope": {
+      "artifactsReviewed": [
+        "Warning: truncated output (original token count: 2376)",
+        "Total output lines: 54",
+        ".github/workflows/make.yml",
+        ".gitignore",
+        "AUTHORS",
+        "Build.PL",
+        "Changes",
+        "MANIFEST",
+        "META.json",
+        "META.yml",
+        "Makefile.PL",
+        "README.md",
+        "examples/dms2vodcast.pl",
+        "examples/upnpavchk.pl",
+        "examples/upnpavdump.pl",
+        "examples/upnpavsimple.pl",
+        "examples/upnpchk.pl",
+        "examples/upnpdump.pl",
+        "examples/upnpgwdump.pl",
+        "examples/upnpgwtool.pl",
+        "lib/Net/UPnP.pm",
+        "lib/Net/UPnP/AV/Container.pm",
+        "lib/Net/UPnP/AV/Content.pm",
+        "lib/Net/UPnP/AV/Item.pm",
+        "lib/Net/UPnP/AV/MediaRenderer.pm",
+        "lib/Net/UPnP/AV/MediaServer.pm",
+        "lib/Net/UPnP/ActionResponse.pm",
+        "lib/Net/UPnP/ControlPoint.pm",
+        "lib/Net/UPnP/Device.pm",
+        "lib/Net/UPnP/GW/Gateway.pm",
+        "lib/Net/UPnP/HTTP.pm",
+        "lib/Net/UPnP/HTTPResponse.pm",
+        "lib/Net/UPnP/QueryResponse.pm"
+      ],
+      "context": "User requested repository review and a PR containing the results. Generated independent architecture model verified against local consumers; independent baseline plus focused investigation within a four-thread session.",
+      "excludePaths": [],
+      "includePaths": [
+        "."
+      ],
+      "limitations": [
+        "Only authorized current source inspected offline; no history, external advisory lookup, live deployment or dependency installation.",
+        "All 33 repository files reviewed; installed Shell.pm unavailable, so suspected command execution remains deferred and is not counted among findings.",
+        "No production exposure or specific privileged loopback target established.",
+        "Preflight ready with warning: four total runtime slots rather than suggested six; independent baseline and focused investigation completed.",
+        "Token usage measurement unavailable from this prompt-driven scan."
+      ],
+      "runtimeStatus": "Application, tests, live devices and exploit payloads were not executed. Existing test only checks module loading.",
+      "summary": "Offline Standard security review of all 33 current tracked repository files at a1fa3ca1529eb361e777c397dee437c7e1e6a046. Seven validated findings; coverage remains partial because the converter's external Shell execution boundary could not be resolved.",
+      "validationMode": "static source trace"
+    },
+    "sealedAt": "2026-10-22T18:29:42.031715Z",
+    "startedAt": "2026-10-22T18:21:02.117392Z",
+    "status": "completed",
+    "target": {
+      "displayName": "cpan-net-upnp",
+      "kind": "git_revision",
+      "revision": "a1fa3ca1529eb361e777c397dee437c7e1e6a046",
+      "targetId": "target_sha256_8e03122cde13d97a762ce13ca453385e11accdddaa9d6c935791096b8c36241d"
+    },
+    "threatModel": {
+      "assets": [
+        "Embedding process availability, memory and execution integrity; remote strings are buffered and parsed in-process (lib/Net/UPnP/HTTP.pm:105-145; lib/Net/UPnP/Device.pm:78-102; lib/Net/UPnP/ActionResponse.pm:98-120).",
+        "Host outbound IPv4 TCP reachability for discovered descriptions and advertised SOAP endpoints (lib/Net/UPnP/ControlPoint.pm:85-100; lib/Net/UPnP/Service.pm:138-169,202-245; lib/Net/UPnP/HTTP.pm:86-100).",
+        "Authorized SOAP operation structure, gateway mappings and renderer state (lib/Net/UPnP/Service.pm:217-245; lib/Net/UPnP/GW/Gateway.pm:194-209,240-248; lib/Net/UPnP/AV/MediaRenderer.pm:73-79,134-139).",
+        "Conditional converter subprocess authority, account-accessible files, media outputs and RSS integrity (examples/dms2vodcast.pl:189-224,285-308).",
+        "Local build/installation and CI runner integrity (README.md:19-24; Makefile.PL:3-17; Build.PL:3-18; .github/workflows/make.yml:24-32)."
+      ],
+      "assumptions": [
+        "No supplied deployment, tenants, credentials, production exposure or threat model. Generated model describes library and conditional examples.",
+        "DEBUG defaults 0; globals/SetDebug permit caller changes. Socket/file/subprocess authority is inherited from caller (lib/Net/UPnP.pm:11-25).",
+        "Local-network discovery documentation does not match a destination restriction: LOCATION accepts arbitrary matching HTTP hosts (lib/Net/UPnP/ControlPoint.pm:85-100,179-181).",
+        "--base-directory documents RSS/MPEG4 placement; MPEG2 staging/deletion instead use CWD. Raw concatenation requires caller separator handling (examples/dms2vodcast.pl:31,43,103-104,189-191,289-308).",
+        "Shell not vendored or found installed; Shell/curl/ffmpeg versions, PATH behavior and sandboxing unknown; build prerequisites only Test::More/version (examples/dms2vodcast.pl:6; Makefile.PL:11-14; Build.PL:11-14).",
+        "No SECURITY.md resolved for root, lib, lib/Net, lib/Net/UPnP, AV, GW, examples, .github/workflows or t.",
+        "Static offline review only; no runtime/exploit execution. Sole test checks module loading (t/UPnP.t:8-9)."
+      ],
+      "attackerCapabilities": [
+        "Peer delivering UDP to discovery socket can supply SSDP LOCATION; plausible LAN prerequisite, no arbitrary Internet exposure assumed (lib/Net/UPnP/ControlPoint.pm:67-100).",
+        "Advertised/compromised endpoint controls descriptions, service URLs, HTTP framing/body, SOAP/DIDL and media URLs (lib/Net/UPnP/ControlPoint.pm:100-113; lib/Net/UPnP/HTTP.pm:105-145; lib/Net/UPnP/AV/MediaServer.pm:197-241).",
+        "Converter input reaches command option strings only when operator separately runs the example; exact Shell semantics need validation (examples/dms2vodcast.pl:6,272-308).",
+        "No control of trusted account/CLI arguments/executables/CI credentials or device administration is assumed. Generic API invocation already within caller authority is not privilege gain."
+      ],
+      "origin": "generated",
+      "scope": {
+        "includePaths": [
+          "."
+        ],
+        "summary": "Whole current repository; independent architecture review verified against consumers."
+      },
+      "securityObjectives": [
+        "Bound duration, memory, counts and traversal for untrusted peers; discovery must terminate independently of peer activity.",
+        "Prevent unauthenticated devices from exercising unintended outbound reachability; preserve caller-authorized SOAP structure (lib/Net/UPnP/ControlPoint.pm:85-100; lib/Net/UPnP/Service.pm:138-169,217-245).",
+        "Converter must preserve execution/file/feed integrity while processing remote metadata, including CWD staging (examples/dms2vodcast.pl:189-224,285-308).",
+        "Device-side gateway/renderer access policy is external; HTTP 200 and object construction do not authenticate peers."
+      ],
+      "summary": "Net::UPnP is a Perl control-point library, not a server (lib/Net/UPnP.pm:81-92). UDP SSDP responses supply LOCATION, fetched by a custom IPv4 HTTP client to construct Device/Service objects (lib/Net/UPnP/ControlPoint.pm:55-120). Services resolve advertised endpoints and send SOAP (lib/Net/UPnP/Service.pm:127-249,266-323). AV wrappers browse metadata/control renderers; GW wrappers query and change port mappings. Optional dms2vodcast downloads/converts media through external Shell/curl/ffmpeg and writes RSS/files. CI only builds and runs a module-load test (.github/workflows/make.yml:6-32; t/UPnP.t:8-9).",
+      "trustBoundaries": [
+        "Network peer -> discovery: default multicast destination 239.255.255.250:1900; st defaults upnp:rootdevice and mx defaults 3, overridable by globals/arguments. recv limits datagrams to 4096 bytes; each select waits mx*2. Sender identity is not retained, authenticated or compared with LOCATION (lib/Net/UPnP.pm:17-18; lib/Net/UPnP/ControlPoint.pm:30-35,55-100).",
+        "LOCATION -> description GET: regex captures host/explicit port or 80/path, then inet_aton/connect uses caller network authority. No reply-origin/address-class restriction (lib/Net/UPnP/ControlPoint.pm:85-100; lib/Net/UPnP/HTTP.pm:86-100).",
+        "Description -> future POST: absolute controlURL wins, else URLBase concatenation, else LOCATION-derived host/port. postaction/postquery parse the resolved endpoint and send SOAP; destination need not equal description origin (lib/Net/UPnP/Device.pm:51-55,78-102,251-253; lib/Net/UPnP/Service.pm:138-169,198-245,285-319).",
+        "HTTP peer -> process: plaintext stream becomes status/headers and chunked, Content-Length or EOF body strings, returned as HTTPResponse. Framing does not impose aggregate size/read deadlines (lib/Net/UPnP/HTTP.pm:86-160).",
+        "Caller operation and remote service metadata -> SOAP XML/header: application chooses authorized actions; no user/tenant authorization layer is supplied (lib/Net/UPnP/Service.pm:217-245,303-319).",
+        "SOAP/DIDL -> objects: status 200 gates regex extraction/entity substitution, not device authentication. IDs, titles and URLs remain remote data; no general XML entity resolver (lib/Net/UPnP/ActionResponse.pm:98-120; lib/Net/UPnP/AV/MediaServer.pm:197-241).",
+        "Optional converter metadata -> subprocess/files/RSS: URL from DIDL, filename from friendlyName+UDN+ID; UDN colons replaced, spaces removed, slashes replaced. MPEG2 staging <body>.mpeg is relative to CWD. MPEG4 uses raw base_directory+<body>_<ipod|psp>.m4v; existing output skips conversion, ffmpeg uses -y; executable lookup and exact Shell quoting remain external (examples/dms2vodcast.pl:6,103-119,272-308).",
+        "RSS resource: raw base_directory+rss_file_name opened for output; raw rss_base_url+generated filename supplies links/enclosure; later publication is external (examples/dms2vodcast.pl:30-43,101-130,189-224).",
+        "Gateway/rendering API -> external device: WANIPConnection/AVTransport wrappers check some service/status conditions; device authorization belongs to remote implementation (lib/Net/UPnP/GW/Gateway.pm:188-209,234-248; lib/Net/UPnP/AV/MediaRenderer.pm:70-79,131-139).",
+        "CI executes checkout@v4 source on push/pull_request master/manual dispatch with ubuntu-latest, perl Makefile.PL and make test. No publication/deployment step (.github/workflows/make.yml:6-32)."
+      ]
+    }
+  },
+  "schemaVersion": "1.0"
+}

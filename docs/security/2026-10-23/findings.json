@@ -1,0 +1,1325 @@
+{
+  "documentType": "codex-security.findings",
+  "findings": [
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "ssdp-input",
+            "http-connect",
+            "http-headers",
+            "http-body"
+          ],
+          "summary": "ControlPoint.pm:99-100 synchronous GET -> HTTP.pm:88,99-105,128-143 blocking connect/write/read with no deadline."
+        },
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-connect",
+          "http-headers",
+          "http-body"
+        ],
+        "limitations": [
+          "Deployment-specific impact was not verified."
+        ],
+        "reachability": {
+          "summary": "LAN responder or compromised selected device controls response progress; successful TCP connection is enough. It can stall the calling thread; no service deployment or whole-host outage is assumed."
+        },
+        "summary": "A discovered device can accept a description request and withhold its status, header terminator or remaining body. `search()` then blocks indefinitely inside the shared HTTP transport; later SOAP actions/queries use the same transport."
+      },
+      "codeEvidence": [
+        {
+          "code": "\twhile( select($rout = $rin, undef, undef, ($args{mx} * 2)) ) {\n\t\trecv(SSDP_SOCK, $ssdp_res_msg, 4096, 0);\n\t\t\n\t\tprint \"$ssdp_res_msg\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\tunless ($ssdp_res_msg =~ m/LOCATION[ :]+(.*)\\r/i) {\n\t\t\tnext;\n\t\t}\t\t\n\t\t$dev_location = $1;\n\t\tprint \"dev_location=$dev_location\\n\" if ($Net::UPnP::DEBUG);\n                unless ($dev_location =~ m{http://([0-9a-z.-]+)(?::(\\d+))?/(.*)}i) {\n                        print \"bad dev_location: $dev_location\\n\" if ($Net::UPnP::DEBUG);\n\t\t\tnext;\n\t\t}\n\t\t$dev_addr = $1;\n\t\t$dev_port = $2 || 80;\n\t\t$dev_path = '/' . $3;\n\t\tprint \"dev_addr=$dev_addr dev_port=$dev_port dev_path=$dev_path\\n\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\t$http_req = Net::UPnP::HTTP->new();\n\t\t$post_res = $http_req->post($dev_addr, $dev_port, \"GET\", $dev_path, \"\", \"\");",
+          "endLine": 100,
+          "explanation": "A responder-provided URL is passed immediately into HTTP::post.",
+          "id": "ssdp-input",
+          "label": "Discovery invokes synchronous GET",
+          "language": "perl",
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "entrypoint",
+          "startLine": 80
+        },
+        {
+          "code": "\t$post_sockaddr = sockaddr_in($post_port, inet_aton($post_addr));\n\tsocket(HTTP_SOCK, PF_INET, SOCK_STREAM, getprotobyname('tcp'));\n\tunless( connect(HTTP_SOCK, $post_sockaddr) ) {\n            print \"connect($post_addr:$post_port) failed: $!\" if ($Net::UPnP::DEBUG);\n            return \"\";\n        }\n\tselect(HTTP_SOCK); $|=1; select(STDOUT);\n\n\tif ($Net::UPnP::DEBUG) {\n\t\tprint $req_header;\n\t\tprint $req_content;\n\t}\n\t\n\tprint HTTP_SOCK $req_header;\n\tprint HTTP_SOCK $req_content;",
+          "endLine": 100,
+          "explanation": "The target address is connected and request bytes written without deadline setup.",
+          "id": "http-connect",
+          "label": "Blocking socket operations",
+          "language": "perl",
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "propagation",
+          "startLine": 86
+        },
+        {
+          "code": "\t$res_status = \"\";\n\t$res_header = \"\";\n\t$res_header_cnt = 0;\n\twhile(<HTTP_SOCK>) {\n\t\tif (m/^\\r\\n$/) {\n\t\t\tlast;\n\t\t}\n\t\t$res_header_cnt++;\n\t\tif ($res_header_cnt == 1) {\n\t\t\t$res_status .= $_;\n\t\t\tnext;\n\t\t}\n\t\t$res_header .= $_;\n\t}\n\n\t$res_content_len = 0;\n\tif($res_header =~ m/^Content-Length[: ]*(\\d+)/i ) {\n\t\t$res_content_len = $1\n\t}",
+          "endLine": 120,
+          "explanation": "A connected peer may withhold a line or blank terminator, preventing return.",
+          "id": "http-headers",
+          "label": "Unbounded wait for response headers",
+          "language": "perl",
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "root_control",
+          "startLine": 102
+        },
+        {
+          "code": "\t$res_content = \"\";\n\tif ($res_chunked) {\n\t\twhile(<HTTP_SOCK>) {\n\t\t\ts/[\\r\\n]//g;\n\t\t\tmy $length = hex($_);\n\t\t\tmy $chunk;\n\n\t\t\tread(HTTP_SOCK, $chunk, $length);\n\t\t\t$res_content .= $chunk;\n\t\t}\n\t}\n\telsif ($res_content_len) {\n\t\tread(HTTP_SOCK, $res_content, $res_content_len);\n\t}\n\telse {\n\t\twhile(<HTTP_SOCK>) {\n\t\t\t$res_content .= $_;\n\t\t}\n\t}",
+          "endLine": 145,
+          "explanation": "All body framing branches may wait for peer data or EOF without an elapsed-time budget.",
+          "id": "http-body",
+          "label": "Body readers share the missing deadline",
+          "language": "perl",
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "sink",
+          "startLine": 127
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Direct current-source trace establishes input, absent local control and outcome; no live deployment or runtime reproduction was assumed."
+      },
+      "findingId": "csf_f0508882ae8e7b6d45982dbc",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:b51b8c936551366c9da9a8b58a450876484ac36c61504afcd4ad9b4c0dec1e9b"
+      },
+      "identity": {
+        "anchor": "device-http-responses-can-stall-discovery-indefinitely"
+      },
+      "locations": [
+        {
+          "endLine": 108,
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "root_control",
+          "startLine": 105
+        },
+        {
+          "endLine": 143,
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "sink",
+          "startLine": 128
+        },
+        {
+          "endLine": 100,
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "entrypoint",
+          "startLine": 99
+        },
+        {
+          "endLine": 245,
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "entrypoint",
+          "startLine": 244
+        },
+        {
+          "endLine": 319,
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "entrypoint",
+          "startLine": 318
+        }
+      ],
+      "occurrenceId": "occ_4f14dbf47a3f3e569ecb3954",
+      "preventiveControls": [
+        "Centralize and document this boundary's explicit safety invariant."
+      ],
+      "provenance": {
+        "candidateId": "base-002",
+        "originalCandidates": [
+          {
+            "attacker": "LAN M-SEARCH responder",
+            "candidateId": "base-002",
+            "confidence": "high",
+            "counterevidence": [
+              "UDP select mx timeout does not cover HTTP.",
+              "Connection: close and connect failure handling do not bound established stream."
+            ],
+            "cwe": "CWE-400",
+            "impact": "Accepted connection with no status/header/body completion blocks caller indefinitely.",
+            "remediation": "Absolute monotonic transaction and discovery deadlines.",
+            "severity": "medium",
+            "source_to_sink": "ControlPoint.pm:99-100 synchronous GET -> HTTP.pm:88,99-105,128-143 blocking connect/write/read with no deadline.",
+            "title": "A discovered device can block all discovery indefinitely through HTTP"
+          },
+          {
+            "attacker": "LAN M-SEARCH responder",
+            "candidateId": "base-002",
+            "confidence": "high",
+            "counterevidence": [
+              "UDP select mx timeout does not cover HTTP.",
+              "Connection: close and connect failure handling do not bound established stream."
+            ],
+            "cwe": "CWE-400",
+            "impact": "Accepted connection with no status/header/body completion blocks caller indefinitely.",
+            "remediation": "Absolute monotonic transaction and discovery deadlines.",
+            "severity": "medium",
+            "source_to_sink": "ControlPoint.pm:99-100 synchronous GET -> HTTP.pm:88,99-105,128-143 blocking connect/write/read with no deadline.",
+            "title": "A discovered device can block all discovery indefinitely through HTTP"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Enforce an absolute monotonic deadline across connect, writes and all reads, limited by the remaining discovery budget; close the socket and return a defined timeout.",
+      "remediationTests": [
+        "Silent accepted peer and slow-drip headers/body must stop at total deadline.",
+        "Exercise description GET, SOAP action/query and all body framing branches."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-connect",
+          "http-headers",
+          "http-body"
+        ],
+        "summary": "`search()` synchronously forwards network-selected LOCATION to `post()`. Blocking connect/write/header/body reads have no absolute deadline; the UDP `select` timeout is suspended while `post()` runs."
+      },
+      "ruleId": "unbounded-http-duration",
+      "severity": {
+        "changeConditions": "A demonstrated sensitive production target or shared-service impact could raise severity; enforced caller isolation and budgets could lower it.",
+        "level": "medium",
+        "rationale": "Availability loss of the embedding caller is directly reachable from ordinary discovery. Local-network access limits the attacker, but one accepted response suffices."
+      },
+      "summary": "A discovered device can accept a description request and withhold its status, header terminator or remaining body. `search()` then blocks indefinitely inside the shared HTTP transport; later SOAP actions/queries use the same transport.",
+      "taxonomy": {
+        "category": "Missing network transaction deadline",
+        "cwe": [
+          "CWE-400"
+        ]
+      },
+      "title": "Device HTTP responses can stall discovery indefinitely",
+      "validation": {
+        "assertions": [
+          "`search()` synchronously forwards network-selected LOCATION to `post()`. Blocking connect/write/header/body reads have no absolute deadline; the UDP `select` timeout is suspended while `post()` runs.",
+          "LAN responder or compromised selected device controls response progress; successful TCP connection is enough. It can stall the calling thread; no service deployment or whole-host outage is assumed."
+        ],
+        "counterEvidence": [
+          "UDP select mx timeout does not cover HTTP.",
+          "Connection: close and connect failure handling do not bound established stream."
+        ],
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-connect",
+          "http-headers",
+          "http-body"
+        ],
+        "limitations": [
+          "Offline static analysis only; no application code, exploit input or network target executed."
+        ],
+        "method": "Independent parent static source trace after worker discovery",
+        "summary": "Parent verified the actual entrypoint, transformation, missing control and sink in current local source."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "ssdp-input",
+            "http-headers",
+            "http-body"
+          ],
+          "summary": "HTTP.pm:105-119 unbounded header append; :128-143 arbitrary chunk/Content-Length read and EOF accumulation."
+        },
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-headers",
+          "http-body"
+        ],
+        "limitations": [
+          "Deployment-specific impact was not verified."
+        ],
+        "reachability": {
+          "summary": "A LAN-advertised or selected malicious device can stream valid data quickly; it need not stall a socket, use compression or expand XML entities."
+        },
+        "summary": "A discovered device can send arbitrarily large header lines, headers or bodies. The client buffers them in Perl strings without a byte budget, allowing memory exhaustion during discovery or SOAP operations."
+      },
+      "codeEvidence": [
+        {
+          "code": "\twhile( select($rout = $rin, undef, undef, ($args{mx} * 2)) ) {\n\t\trecv(SSDP_SOCK, $ssdp_res_msg, 4096, 0);\n\t\t\n\t\tprint \"$ssdp_res_msg\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\tunless ($ssdp_res_msg =~ m/LOCATION[ :]+(.*)\\r/i) {\n\t\t\tnext;\n\t\t}\t\t\n\t\t$dev_location = $1;\n\t\tprint \"dev_location=$dev_location\\n\" if ($Net::UPnP::DEBUG);\n                unless ($dev_location =~ m{http://([0-9a-z.-]+)(?::(\\d+))?/(.*)}i) {\n                        print \"bad dev_location: $dev_location\\n\" if ($Net::UPnP::DEBUG);\n\t\t\tnext;\n\t\t}\n\t\t$dev_addr = $1;\n\t\t$dev_port = $2 || 80;\n\t\t$dev_path = '/' . $3;\n\t\tprint \"dev_addr=$dev_addr dev_port=$dev_port dev_path=$dev_path\\n\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\t$http_req = Net::UPnP::HTTP->new();\n\t\t$post_res = $http_req->post($dev_addr, $dev_port, \"GET\", $dev_path, \"\", \"\");",
+          "endLine": 100,
+          "explanation": "Ordinary discovery causes an attacker-controlled response to be processed.",
+          "id": "ssdp-input",
+          "label": "Network responder reaches HTTP reader",
+          "language": "perl",
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "entrypoint",
+          "startLine": 80
+        },
+        {
+          "code": "\t$res_status = \"\";\n\t$res_header = \"\";\n\t$res_header_cnt = 0;\n\twhile(<HTTP_SOCK>) {\n\t\tif (m/^\\r\\n$/) {\n\t\t\tlast;\n\t\t}\n\t\t$res_header_cnt++;\n\t\tif ($res_header_cnt == 1) {\n\t\t\t$res_status .= $_;\n\t\t\tnext;\n\t\t}\n\t\t$res_header .= $_;\n\t}\n\n\t$res_content_len = 0;\n\tif($res_header =~ m/^Content-Length[: ]*(\\d+)/i ) {\n\t\t$res_content_len = $1\n\t}",
+          "endLine": 120,
+          "explanation": "Line reads and aggregate append accept arbitrary amounts of peer-supplied header data.",
+          "id": "http-headers",
+          "label": "Unbounded header buffering",
+          "language": "perl",
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "root_control",
+          "startLine": 102
+        },
+        {
+          "code": "\t$res_content = \"\";\n\tif ($res_chunked) {\n\t\twhile(<HTTP_SOCK>) {\n\t\t\ts/[\\r\\n]//g;\n\t\t\tmy $length = hex($_);\n\t\t\tmy $chunk;\n\n\t\t\tread(HTTP_SOCK, $chunk, $length);\n\t\t\t$res_content .= $chunk;\n\t\t}\n\t}\n\telsif ($res_content_len) {\n\t\tread(HTTP_SOCK, $res_content, $res_content_len);\n\t}\n\telse {\n\t\twhile(<HTTP_SOCK>) {\n\t\t\t$res_content .= $_;\n\t\t}\n\t}",
+          "endLine": 145,
+          "explanation": "Large Content-Length/chunk values and unlimited EOF-delimited append have no aggregate body cap.",
+          "id": "http-body",
+          "label": "Peer-selected lengths and body accumulation",
+          "language": "perl",
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "sink",
+          "startLine": 127
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Direct current-source trace establishes input, absent local control and outcome; no live deployment or runtime reproduction was assumed."
+      },
+      "findingId": "csf_b53c6a7fc953d6fe7db25efd",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:84bb53409da3f08fc5be49f8f3e38a3b8a92338d8de9faf8d0203057acaed7ff"
+      },
+      "identity": {
+        "anchor": "device-http-responses-can-exhaust-caller-memory"
+      },
+      "locations": [
+        {
+          "endLine": 119,
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "root_control",
+          "startLine": 114
+        },
+        {
+          "endLine": 143,
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "sink",
+          "startLine": 131
+        },
+        {
+          "endLine": 100,
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "entrypoint",
+          "startLine": 99
+        },
+        {
+          "endLine": 245,
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "entrypoint",
+          "startLine": 244
+        },
+        {
+          "endLine": 319,
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "entrypoint",
+          "startLine": 318
+        }
+      ],
+      "occurrenceId": "occ_e5393194b59110b583562a84",
+      "preventiveControls": [
+        "Centralize and document this boundary's explicit safety invariant."
+      ],
+      "provenance": {
+        "candidateId": "base-003",
+        "originalCandidates": [
+          {
+            "attacker": "Discovered malicious HTTP device",
+            "candidateId": "base-003",
+            "confidence": "high",
+            "counterevidence": [
+              "4096-byte SSDP cap unrelated.",
+              "Content-Length regex first-header-only; EOF fallback unbounded."
+            ],
+            "cwe": "CWE-789",
+            "impact": "Large headers/bodies exhaust process memory.",
+            "remediation": "Independent header/line/body/chunk limits and bounded reads.",
+            "severity": "medium",
+            "source_to_sink": "HTTP.pm:105-119 unbounded header append; :128-143 arbitrary chunk/Content-Length read and EOF accumulation.",
+            "title": "HTTP responses consume unbounded memory"
+          },
+          {
+            "attacker": "Discovered malicious HTTP device",
+            "candidateId": "base-003",
+            "confidence": "high",
+            "counterevidence": [
+              "4096-byte SSDP cap unrelated.",
+              "Content-Length regex first-header-only; EOF fallback unbounded."
+            ],
+            "cwe": "CWE-789",
+            "impact": "Large headers/bodies exhaust process memory.",
+            "remediation": "Independent header/line/body/chunk limits and bounded reads.",
+            "severity": "medium",
+            "source_to_sink": "HTTP.pm:105-119 unbounded header append; :128-143 arbitrary chunk/Content-Length read and EOF accumulation.",
+            "title": "HTTP responses consume unbounded memory"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Limit line length, total header bytes, chunk size and cumulative body bytes before buffering; use fixed-size reads and reject over-budget declared lengths.",
+      "remediationTests": [
+        "Oversized header line and aggregate headers are rejected.",
+        "Content-Length, chunked and EOF responses exceeding the same body budget fail without large buffers."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-headers",
+          "http-body"
+        ],
+        "summary": "`post()` reads complete lines, appends headers and EOF/chunked bodies, and passes peer-selected Content-Length/chunk sizes directly to `read()`. There is no maximum line/header/chunk/body budget before buffering."
+      },
+      "ruleId": "unbounded-http-buffering",
+      "severity": {
+        "changeConditions": "A demonstrated sensitive production target or shared-service impact could raise severity; enforced caller isolation and budgets could lower it.",
+        "level": "medium",
+        "rationale": "Unbounded remotely controlled allocation threatens process memory. A malicious device is required; no system-wide OOM outcome is asserted."
+      },
+      "summary": "A discovered device can send arbitrarily large header lines, headers or bodies. The client buffers them in Perl strings without a byte budget, allowing memory exhaustion during discovery or SOAP operations.",
+      "taxonomy": {
+        "category": "Unbounded response buffering",
+        "cwe": [
+          "CWE-789"
+        ]
+      },
+      "title": "Device HTTP responses can exhaust caller memory",
+      "validation": {
+        "assertions": [
+          "`post()` reads complete lines, appends headers and EOF/chunked bodies, and passes peer-selected Content-Length/chunk sizes directly to `read()`. There is no maximum line/header/chunk/body budget before buffering.",
+          "A LAN-advertised or selected malicious device can stream valid data quickly; it need not stall a socket, use compression or expand XML entities."
+        ],
+        "counterEvidence": [
+          "4096-byte SSDP cap unrelated.",
+          "Content-Length regex first-header-only; EOF fallback unbounded."
+        ],
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-headers",
+          "http-body"
+        ],
+        "limitations": [
+          "Offline static analysis only; no application code, exploit input or network target executed."
+        ],
+        "method": "Independent parent static source trace after worker discovery",
+        "summary": "Parent verified the actual entrypoint, transformation, missing control and sink in current local source."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "ssdp-input",
+            "http-connect",
+            "service-dest",
+            "service-call",
+            "service-soap"
+          ],
+          "summary": "ControlPoint.pm:80-100 ignores sender, passes LOCATION host/port/path to HTTP.pm:86-88 inet_aton/connect; Service.pm:138-169 absolute controlURL/URLBase selects later POST target."
+        },
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-connect",
+          "service-dest",
+          "service-call",
+          "service-soap"
+        ],
+        "limitations": [
+          "Blind requests only; no response exfiltration or concrete privileged target demonstrated."
+        ],
+        "reachability": {
+          "summary": "Attacker must deliver a discovery reply during search. Meaningful impact requires a reachable target service accepting unauthenticated HTTP or a GET with side effects; subsequent POSTs require caller use of the advertised service."
+        },
+        "summary": "A LAN responder can advertise `http://127.0.0.1:8080/...` as LOCATION and make the client issue a GET to a victim-local service. Later service URLs and URLBase can similarly redirect SOAP POSTs to unrelated origins."
+      },
+      "codeEvidence": [
+        {
+          "code": "\twhile( select($rout = $rin, undef, undef, ($args{mx} * 2)) ) {\n\t\trecv(SSDP_SOCK, $ssdp_res_msg, 4096, 0);\n\t\t\n\t\tprint \"$ssdp_res_msg\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\tunless ($ssdp_res_msg =~ m/LOCATION[ :]+(.*)\\r/i) {\n\t\t\tnext;\n\t\t}\t\t\n\t\t$dev_location = $1;\n\t\tprint \"dev_location=$dev_location\\n\" if ($Net::UPnP::DEBUG);\n                unless ($dev_location =~ m{http://([0-9a-z.-]+)(?::(\\d+))?/(.*)}i) {\n                        print \"bad dev_location: $dev_location\\n\" if ($Net::UPnP::DEBUG);\n\t\t\tnext;\n\t\t}\n\t\t$dev_addr = $1;\n\t\t$dev_port = $2 || 80;\n\t\t$dev_path = '/' . $3;\n\t\tprint \"dev_addr=$dev_addr dev_port=$dev_port dev_path=$dev_path\\n\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\t$http_req = Net::UPnP::HTTP->new();\n\t\t$post_res = $http_req->post($dev_addr, $dev_port, \"GET\", $dev_path, \"\", \"\");",
+          "endLine": 100,
+          "explanation": "recv's sender is ignored while the response chooses the full HTTP target.",
+          "id": "ssdp-input",
+          "label": "Unauthenticated LOCATION controls destination",
+          "language": "perl",
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "root_control",
+          "startLine": 80
+        },
+        {
+          "code": "\t$post_sockaddr = sockaddr_in($post_port, inet_aton($post_addr));\n\tsocket(HTTP_SOCK, PF_INET, SOCK_STREAM, getprotobyname('tcp'));\n\tunless( connect(HTTP_SOCK, $post_sockaddr) ) {\n            print \"connect($post_addr:$post_port) failed: $!\" if ($Net::UPnP::DEBUG);\n            return \"\";\n        }\n\tselect(HTTP_SOCK); $|=1; select(STDOUT);\n\n\tif ($Net::UPnP::DEBUG) {\n\t\tprint $req_header;\n\t\tprint $req_content;\n\t}\n\t\n\tprint HTTP_SOCK $req_header;\n\tprint HTTP_SOCK $req_content;",
+          "endLine": 100,
+          "explanation": "Host resolution and connect use the victim's network reachability with no destination check.",
+          "id": "http-connect",
+          "label": "Advertised address becomes TCP destination",
+          "language": "perl",
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "sink",
+          "startLine": 86
+        },
+        {
+          "code": "\t$location_url = $dev->getlocation();\n\t$url_base = $dev->geturlbase();\n\t$ctrl_url = $this->getcontrolurl();\n\n\t#print \"$location_url\\n\";\n\t#print \"$url_base\\n\";\n\t#print \"$ctrl_url\\n\";\n\t\t\n\tunless ($ctrl_url =~ m{http://(.*)}i) {\n\t\tif (0 < length($url_base)) {\n\t\t\t# Thanks for Thus0 (2005/01/12)\n\t\t\tif (rindex($url_base, '/') == (length($url_base)-1) && index($ctrl_url, '/') == 0) {\n\t\t\t\t$ctrl_url = $url_base . substr($ctrl_url, 1);\n\t\t\t} else {\n\t\t\t\t$ctrl_url = $url_base . $ctrl_url;",
+          "endLine": 152,
+          "explanation": "Absolute controlURL bypasses base construction, and URLBase can replace the origin.",
+          "id": "service-dest",
+          "label": "Cross-origin service target accepted",
+          "language": "perl",
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "propagation",
+          "startLine": 138
+        },
+        {
+          "code": "\t$dev = $this->getdevice();\n\t$ctrl_url = $this->getcontrolurl();\n\t$ctrl_url = $this->getposturl($ctrl_url);\n\t\n\tunless ($ctrl_url =~ m{http://([0-9a-z.-]+)(?::(\\d+))?/(.*)}i) {\n\t\t#print \"Invalid URL : $ctrl_url\\n\";\n\t\t$post_res = Net::UPnP::HTTPResponse->new();\n\t\t$action_res->sethttpresponse($post_res);\n\t\treturn $action_res;\n\t}\n\t$post_addr = $1;\n\t$post_port = $2 || 80;\n\tif (index($3, '/') == 0) {\n\t\t$post_path = $3;\n\t}\n\telse {\n\t\t$post_path = '/' . $3;\n\t}\n\n\t$service_type = $this->getservicetype();\n\t$soap_action = '\"' . $service_type . '#' . $action_name . '\"';",
+          "endLine": 218,
+          "explanation": "postaction parses host/port/path from the device-provided target.",
+          "id": "service-call",
+          "label": "Resolved target used for action",
+          "language": "perl",
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "entrypoint",
+          "startLine": 198
+        },
+        {
+          "code": "\t$http_req = Net::UPnP::HTTP->new();\n\t$post_res = $http_req->postsoap($post_addr, $post_port, $post_path, $soap_action, $soap_content);\n\n\t$action_res->sethttpresponse($post_res);",
+          "endLine": 247,
+          "explanation": "postsoap receives that destination and caller operation body.",
+          "id": "service-soap",
+          "label": "Action targets resolved address",
+          "language": "perl",
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "sink",
+          "startLine": 244
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Direct current-source trace establishes input, absent local control and outcome; no live deployment or runtime reproduction was assumed."
+      },
+      "findingId": "csf_14c6b1d3a8d923765663bdd5",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:c99a28c4934d8fac1803dc27fed88c725b11c00e5a4cd43b1c2d7856990ed844"
+      },
+      "identity": {
+        "anchor": "ssdp-responses-can-trigger-blind-requests-to-loopback-services"
+      },
+      "locations": [
+        {
+          "endLine": 100,
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "root_control",
+          "startLine": 90
+        },
+        {
+          "endLine": 88,
+          "path": "lib/Net/UPnP/HTTP.pm",
+          "role": "sink",
+          "startLine": 86
+        },
+        {
+          "endLine": 152,
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "root_control",
+          "startLine": 138
+        },
+        {
+          "endLine": 215,
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "entrypoint",
+          "startLine": 198
+        },
+        {
+          "endLine": 302,
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "entrypoint",
+          "startLine": 285
+        }
+      ],
+      "occurrenceId": "occ_c4ef5647c16d6845368e878e",
+      "preventiveControls": [
+        "Centralize and document this boundary's explicit safety invariant."
+      ],
+      "provenance": {
+        "candidateId": "base-004",
+        "originalCandidates": [
+          {
+            "attacker": "LAN M-SEARCH responder",
+            "candidateId": "base-004",
+            "confidence": "high",
+            "counterevidence": [
+              "Following advertised URL intended; only HTTP accepted, no cookies/auth attached.",
+              "Loopback IPv4/DNS/arbitrary ports allowed."
+            ],
+            "cwe": "CWE-918",
+            "impact": "Blind GET to loopback/unrelated reachable service; potential GET-side effects, no automatic body exfiltration.",
+            "remediation": "Resolved-address destination policy retaining peer provenance, device-origin restrictions and explicit caller opt-ins.",
+            "severity": "medium",
+            "source_to_sink": "ControlPoint.pm:80-100 ignores sender, passes LOCATION host/port/path to HTTP.pm:86-88 inet_aton/connect; Service.pm:138-169 absolute controlURL/URLBase selects later POST target.",
+            "title": "SSDP LOCATION permits requests to services outside the responding device"
+          },
+          {
+            "attacker": "LAN M-SEARCH responder",
+            "candidateId": "base-004",
+            "confidence": "high",
+            "counterevidence": [
+              "Following advertised URL intended; only HTTP accepted, no cookies/auth attached.",
+              "Loopback IPv4/DNS/arbitrary ports allowed."
+            ],
+            "cwe": "CWE-918",
+            "impact": "Blind GET to loopback/unrelated reachable service; potential GET-side effects, no automatic body exfiltration.",
+            "remediation": "Resolved-address destination policy retaining peer provenance, device-origin restrictions and explicit caller opt-ins.",
+            "severity": "medium",
+            "source_to_sink": "ControlPoint.pm:80-100 ignores sender, passes LOCATION host/port/path to HTTP.pm:86-88 inet_aton/connect; Service.pm:138-169 absolute controlURL/URLBase selects later POST target.",
+            "title": "SSDP LOCATION permits requests to services outside the responding device"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Retain SSDP sender provenance and enforce a caller-configurable resolved-address policy before connect, rejecting loopback/unrelated destinations by default. Bind subsequent service URLs to the permitted device origin; explicitly allow supported proxy/multihomed cases.",
+      "remediationTests": [
+        "Reject loopback and disallowed resolved destinations for LOCATION, URLBase and absolute controlURL.",
+        "Ensure allowed device/proxy origins still work without DNS resolution/check-use gaps."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-connect",
+          "service-dest",
+          "service-call",
+          "service-soap"
+        ],
+        "summary": "`recv()` discards sender provenance; URL-pattern matching is the only destination gate. Parsed host/port/path reach `inet_aton()` and `connect()` without a resolved-address or peer-origin policy. Service endpoint construction likewise accepts absolute cross-origin URLs."
+      },
+      "ruleId": "ssdp-destination-policy",
+      "severity": {
+        "changeConditions": "A demonstrated sensitive production target or shared-service impact could raise severity; enforced caller isolation and budgets could lower it.",
+        "level": "medium",
+        "rationale": "The automatic GET crosses LAN-to-victim-loopback reachability. No response exfiltration, credentials, cookies or specific privileged target are established; impact depends on target behavior."
+      },
+      "summary": "A LAN responder can advertise `http://127.0.0.1:8080/...` as LOCATION and make the client issue a GET to a victim-local service. Later service URLs and URLBase can similarly redirect SOAP POSTs to unrelated origins.",
+      "taxonomy": {
+        "category": "Unrestricted discovery-derived request destination",
+        "cwe": [
+          "CWE-918"
+        ]
+      },
+      "title": "SSDP responses can trigger blind requests to loopback services",
+      "validation": {
+        "assertions": [
+          "`recv()` discards sender provenance; URL-pattern matching is the only destination gate. Parsed host/port/path reach `inet_aton()` and `connect()` without a resolved-address or peer-origin policy. Service endpoint construction likewise accepts absolute cross-origin URLs.",
+          "Attacker must deliver a discovery reply during search. Meaningful impact requires a reachable target service accepting unauthenticated HTTP or a GET with side effects; subsequent POSTs require caller use of the advertised service."
+        ],
+        "counterEvidence": [
+          "Following advertised URL intended; only HTTP accepted, no cookies/auth attached.",
+          "Loopback IPv4/DNS/arbitrary ports allowed."
+        ],
+        "evidenceRefs": [
+          "ssdp-input",
+          "http-connect",
+          "service-dest",
+          "service-call",
+          "service-soap"
+        ],
+        "limitations": [
+          "Offline static analysis only; no application code, exploit input or network target executed."
+        ],
+        "method": "Independent parent static source trace after worker discovery",
+        "summary": "Parent verified the actual entrypoint, transformation, missing control and sink in current local source."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "ssdp-input",
+            "ssdp-append"
+          ],
+          "summary": "ControlPoint.pm:80-86 resets mx*2 wait every packet; :111-120 appends Device per successful duplicate fetch without dedup."
+        },
+        "evidenceRefs": [
+          "ssdp-input",
+          "ssdp-append"
+        ],
+        "limitations": [
+          "Deployment-specific impact was not verified."
+        ],
+        "reachability": {
+          "summary": "A LAN sender needs the active discovery socket address. Even packets without LOCATION restart the wait; valid duplicate replies additionally grow memory."
+        },
+        "summary": "A peer can send datagrams more frequently than `mx*2` to keep `search()` alive indefinitely. Repeated valid replies also trigger repeated GETs and retained duplicate Device objects."
+      },
+      "codeEvidence": [
+        {
+          "code": "\twhile( select($rout = $rin, undef, undef, ($args{mx} * 2)) ) {\n\t\trecv(SSDP_SOCK, $ssdp_res_msg, 4096, 0);\n\t\t\n\t\tprint \"$ssdp_res_msg\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\tunless ($ssdp_res_msg =~ m/LOCATION[ :]+(.*)\\r/i) {\n\t\t\tnext;\n\t\t}\t\t\n\t\t$dev_location = $1;\n\t\tprint \"dev_location=$dev_location\\n\" if ($Net::UPnP::DEBUG);\n                unless ($dev_location =~ m{http://([0-9a-z.-]+)(?::(\\d+))?/(.*)}i) {\n                        print \"bad dev_location: $dev_location\\n\" if ($Net::UPnP::DEBUG);\n\t\t\tnext;\n\t\t}\n\t\t$dev_addr = $1;\n\t\t$dev_port = $2 || 80;\n\t\t$dev_path = '/' . $3;\n\t\tprint \"dev_addr=$dev_addr dev_port=$dev_port dev_path=$dev_path\\n\" if ($Net::UPnP::DEBUG);\n\t\t\n\t\t$http_req = Net::UPnP::HTTP->new();\n\t\t$post_res = $http_req->post($dev_addr, $dev_port, \"GET\", $dev_path, \"\", \"\");",
+          "endLine": 100,
+          "explanation": "Each loop starts a fresh mx*2 wait; next on malformed LOCATION does not consume an overall budget.",
+          "id": "ssdp-input",
+          "label": "Idle timeout reset on every packet",
+          "language": "perl",
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "root_control",
+          "startLine": 80
+        },
+        {
+          "code": " \t\t$post_content = $post_res->getcontent();\n\n\t\t$dev = Net::UPnP::Device->new();\n \t\t$dev->setssdp($ssdp_res_msg);\n\t\t$dev->setdescription($post_content);\n\t\n\t\tif ($Net::UPnP::DEBUG) {\n\t \t\tprint \"ssdp = $ssdp_res_msg\\n\";\n\t \t\tprint \"description = $post_content\\n\";\n\t \t}\n\n\t\tpush(@dev_list, $dev);",
+          "endLine": 120,
+          "explanation": "Every successful repeated fetch creates and appends another Device without deduplication.",
+          "id": "ssdp-append",
+          "label": "Duplicate devices retained",
+          "language": "perl",
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "sink",
+          "startLine": 109
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Direct current-source trace establishes input, absent local control and outcome; no live deployment or runtime reproduction was assumed."
+      },
+      "findingId": "csf_1612afab1fcd49a87e7db3db",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:4023f18db743615f8549ca00c5686f2020e259e7979adec8e645257b30b94704"
+      },
+      "identity": {
+        "anchor": "repeated-ssdp-packets-keep-discovery-running-and-growing"
+      },
+      "locations": [
+        {
+          "endLine": 86,
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "root_control",
+          "startLine": 80
+        },
+        {
+          "endLine": 120,
+          "path": "lib/Net/UPnP/ControlPoint.pm",
+          "role": "sink",
+          "startLine": 111
+        }
+      ],
+      "occurrenceId": "occ_b74bfc32866af004d827e3b8",
+      "preventiveControls": [
+        "Centralize and document this boundary's explicit safety invariant."
+      ],
+      "provenance": {
+        "candidateId": "base-005",
+        "originalCandidates": [
+          {
+            "attacker": "LAN UDP sender",
+            "candidateId": "base-005",
+            "confidence": "high",
+            "counterevidence": [
+              "4096-byte cap and quiet-network timeout do not bound duration/results."
+            ],
+            "cwe": "CWE-400",
+            "impact": "Invalid packets keep search alive; valid duplicates increase HTTP work and retained memory.",
+            "remediation": "Absolute deadline, dedup before fetch and packet/fetch/result caps.",
+            "severity": "medium",
+            "source_to_sink": "ControlPoint.pm:80-86 resets mx*2 wait every packet; :111-120 appends Device per successful duplicate fetch without dedup.",
+            "title": "Repeated SSDP packets prevent search completion and grow the device list"
+          },
+          {
+            "attacker": "LAN UDP sender",
+            "candidateId": "base-005",
+            "confidence": "high",
+            "counterevidence": [
+              "4096-byte cap and quiet-network timeout do not bound duration/results."
+            ],
+            "cwe": "CWE-400",
+            "impact": "Invalid packets keep search alive; valid duplicates increase HTTP work and retained memory.",
+            "remediation": "Absolute deadline, dedup before fetch and packet/fetch/result caps.",
+            "severity": "medium",
+            "source_to_sink": "ControlPoint.pm:80-86 resets mx*2 wait every packet; :111-120 appends Device per successful duplicate fetch without dedup.",
+            "title": "Repeated SSDP packets prevent search completion and grow the device list"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Compute one absolute search deadline, pass remaining time into select and HTTP, and impose packet/fetch/result caps. Deduplicate USN/LOCATION using a bounded set before HTTP fetch.",
+      "remediationTests": [
+        "Continuous malformed UDP and duplicate valid responses terminate within the total budget.",
+        "Duplicate replies do not repeat GETs or add unbounded results."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "ssdp-input",
+          "ssdp-append"
+        ],
+        "summary": "The full timeout is recomputed for each `select()` iteration rather than measured against a fixed end time. Packet count, fetch count and result count are unbounded, and responses are not deduplicated before fetching/appending."
+      },
+      "ruleId": "unbounded-ssdp-search",
+      "severity": {
+        "changeConditions": "A demonstrated sensitive production target or shared-service impact could raise severity; enforced caller isolation and budgets could lower it.",
+        "level": "medium",
+        "rationale": "The public discovery operation can be held open by sustained peer activity; duplicate result retention is independent of individual HTTP byte/time limits."
+      },
+      "summary": "A peer can send datagrams more frequently than `mx*2` to keep `search()` alive indefinitely. Repeated valid replies also trigger repeated GETs and retained duplicate Device objects.",
+      "taxonomy": {
+        "category": "Missing discovery duration and result budgets",
+        "cwe": [
+          "CWE-400"
+        ]
+      },
+      "title": "Repeated SSDP packets keep discovery running and growing",
+      "validation": {
+        "assertions": [
+          "The full timeout is recomputed for each `select()` iteration rather than measured against a fixed end time. Packet count, fetch count and result count are unbounded, and responses are not deduplicated before fetching/appending.",
+          "A LAN sender needs the active discovery socket address. Even packets without LOCATION restart the wait; valid duplicate replies additionally grow memory."
+        ],
+        "counterEvidence": [
+          "4096-byte cap and quiet-network timeout do not bound duration/results."
+        ],
+        "evidenceRefs": [
+          "ssdp-input",
+          "ssdp-append"
+        ],
+        "limitations": [
+          "Offline static analysis only; no application code, exploit input or network target executed."
+        ],
+        "method": "Independent parent static source trace after worker discovery",
+        "summary": "Parent verified the actual entrypoint, transformation, missing control and sink in current local source."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "gateway-loop",
+            "service-soap"
+          ],
+          "summary": "Gateway.pm:138-151 while(1) postaction GetGenericPortMappingEntry, only status !=200 breaks, pushes every arg list."
+        },
+        "evidenceRefs": [
+          "gateway-loop",
+          "service-soap"
+        ],
+        "limitations": [
+          "Deployment-specific impact was not verified."
+        ],
+        "reachability": {
+          "summary": "Victim enumerates an advertised/impersonated gateway, including via number-of-entries fallback or gateway dump/list examples. The attacker need not control the real router or its mappings."
+        },
+        "summary": "A malicious WANIPConnection service can return HTTP 200 for every requested mapping index. `getportmappingentries()` never returns and retains every parsed response, even when each response is small and fast."
+      },
+      "codeEvidence": [
+        {
+          "code": "        $n = 0;\n        while( 1 ) {\n\t\t%req_arg = (\n\t\t\t\t'NewPortMappingIndex' => $n,\n\t\t\t);\n\t\n\t\t$action_res = $wanipcon_service->postaction(\"GetGenericPortMappingEntry\", \\%req_arg);\n\t\t#print \"[$n]\" .$action_res->getstatuscode()  . \"\\n\";\n\t\t#print %req_arg;\n                last if ($action_res->getstatuscode() != 200);\n\t\t$arg_list = $action_res->getargumentlist();\n\t\t#print $arg_list;\n\t\tpush(@port_mapping, $arg_list);\n                ++$n;\n\t}",
+          "endLine": 152,
+          "explanation": "Each successful response is appended and advances to another request with no local count/deadline control.",
+          "id": "gateway-loop",
+          "label": "Peer status is sole loop termination",
+          "language": "perl",
+          "path": "lib/Net/UPnP/GW/Gateway.pm",
+          "role": "root_control",
+          "startLine": 138
+        },
+        {
+          "code": "\t$http_req = Net::UPnP::HTTP->new();\n\t$post_res = $http_req->postsoap($post_addr, $post_port, $post_path, $soap_action, $soap_content);\n\n\t$action_res->sethttpresponse($post_res);",
+          "endLine": 247,
+          "explanation": "Gateway postaction requests go through the shared HTTP client; limiting one exchange does not bound their number.",
+          "id": "service-soap",
+          "label": "Enumeration uses SOAP transport",
+          "language": "perl",
+          "path": "lib/Net/UPnP/Service.pm",
+          "role": "propagation",
+          "startLine": 244
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Direct current-source trace establishes input, absent local control and outcome; no live deployment or runtime reproduction was assumed."
+      },
+      "findingId": "csf_d00f8fc95ab69588f5a20d09",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:5971267136dfebd4bd783ea4c5a95924180d65eb6977260c5e64489c73f39dff"
+      },
+      "identity": {
+        "anchor": "gateway-success-responses-cause-endless-mapping-enumeration"
+      },
+      "locations": [
+        {
+          "endLine": 151,
+          "path": "lib/Net/UPnP/GW/Gateway.pm",
+          "role": "root_control",
+          "startLine": 138
+        },
+        {
+          "endLine": 109,
+          "path": "lib/Net/UPnP/GW/Gateway.pm",
+          "role": "entrypoint",
+          "startLine": 106
+        }
+      ],
+      "occurrenceId": "occ_e750431cbc2bf8ae1b590b05",
+      "preventiveControls": [
+        "Centralize and document this boundary's explicit safety invariant."
+      ],
+      "provenance": {
+        "candidateId": "base-006",
+        "originalCandidates": [
+          {
+            "attacker": "Malicious discovered WANIPConnection service",
+            "candidateId": "base-006",
+            "confidence": "high",
+            "counterevidence": [
+              "Conforming gateway eventually fails; no entry/count/time validation."
+            ],
+            "cwe": "CWE-835",
+            "impact": "Endless requests and memory accumulation even with bounded individual HTTP exchanges.",
+            "remediation": "Maximum entries/protocol index and absolute deadline; explicit truncated/error result.",
+            "severity": "medium",
+            "source_to_sink": "Gateway.pm:138-151 while(1) postaction GetGenericPortMappingEntry, only status !=200 breaks, pushes every arg list.",
+            "title": "A gateway controls an unbounded port-mapping enumeration loop"
+          },
+          {
+            "attacker": "Malicious discovered WANIPConnection service",
+            "candidateId": "base-006",
+            "confidence": "high",
+            "counterevidence": [
+              "Conforming gateway eventually fails; no entry/count/time validation."
+            ],
+            "cwe": "CWE-835",
+            "impact": "Endless requests and memory accumulation even with bounded individual HTTP exchanges.",
+            "remediation": "Maximum entries/protocol index and absolute deadline; explicit truncated/error result.",
+            "severity": "medium",
+            "source_to_sink": "Gateway.pm:138-151 while(1) postaction GetGenericPortMappingEntry, only status !=200 breaks, pushes every arg list.",
+            "title": "A gateway controls an unbounded port-mapping enumeration loop"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Enforce a maximum mapping count/protocol index and overall deadline, validate entries and return an explicit truncated/error outcome if the peer fails to terminate.",
+      "remediationTests": [
+        "A gateway returning endless valid 200 responses stops at the count/time limit.",
+        "Normal terminal errors and number-of-entries fallback retain defined behavior."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "gateway-loop",
+          "service-soap"
+        ],
+        "summary": "The unconditional loop stops only on peer-supplied non-200 status, increments the index and pushes every response without an entry or elapsed-time cap."
+      },
+      "ruleId": "unbounded-gateway-enumeration",
+      "severity": {
+        "changeConditions": "A demonstrated sensitive production target or shared-service impact could raise severity; enforced caller isolation and budgets could lower it.",
+        "level": "medium",
+        "rationale": "Caller memory and availability are exposed through an ordinary library enumeration API; honest per-request timeout/size bounds do not close this loop."
+      },
+      "summary": "A malicious WANIPConnection service can return HTTP 200 for every requested mapping index. `getportmappingentries()` never returns and retains every parsed response, even when each response is small and fast.",
+      "taxonomy": {
+        "category": "Peer-controlled enumeration termination",
+        "cwe": [
+          "CWE-835"
+        ]
+      },
+      "title": "Gateway success responses cause endless mapping enumeration",
+      "validation": {
+        "assertions": [
+          "The unconditional loop stops only on peer-supplied non-200 status, increments the index and pushes every response without an entry or elapsed-time cap.",
+          "Victim enumerates an advertised/impersonated gateway, including via number-of-entries fallback or gateway dump/list examples. The attacker need not control the real router or its mappings."
+        ],
+        "counterEvidence": [
+          "Conforming gateway eventually fails; no entry/count/time validation."
+        ],
+        "evidenceRefs": [
+          "gateway-loop",
+          "service-soap"
+        ],
+        "limitations": [
+          "Offline static analysis only; no application code, exploit input or network target executed."
+        ],
+        "method": "Independent parent static source trace after worker discovery",
+        "summary": "Parent verified the actual entrypoint, transformation, missing control and sink in current local source."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "didl-container",
+            "recurse-export",
+            "recurse-check",
+            "recurse-dump"
+          ],
+          "summary": "MediaServer.pm:203-215 container ID -> dms2vodcast.pl:257-265 / upnpavchk.pl:49-56 / upnpavdump.pl:70-78 recursively browse with no visited/depth/nodes budget."
+        },
+        "evidenceRefs": [
+          "didl-container",
+          "recurse-export",
+          "recurse-check",
+          "recurse-dump"
+        ],
+        "limitations": [
+          "Deployment-specific impact was not verified."
+        ],
+        "reachability": {
+          "summary": "Requires the operator to run a recursive example against an attacker-controlled discoverable MediaServer. Normal library getcontentlist performs one bounded sequence of requests rather than recursive traversal."
+        },
+        "summary": "A MediaServer can return a container referring to the requested ObjectID or an endless chain. The recursive examples repeatedly browse it with no visited set or depth/node/request cap."
+      },
+      "codeEvidence": [
+        {
+          "code": "\twhile ($result =~ m/<container(.*?)<\\/container>/sgi) {\n\t\t$content = $1;\n\t\t$container = Net::UPnP::AV::Container->new();\n\t\tif ($content =~ m/id=\\\"(.*?)\\\"/si) {\n\t\t\t$container->setid($1);\n\t\t}\n\t\tif ($content =~ m/<dc:title>(.*)<\\/dc:title>/si) {\n\t\t\t$container->settitle($1);\n\t\t}\n\t\tif ($content =~ m/<dc:date>(.*)<\\/dc:date>/si) {\n\t\t\t$container->setdate($1);\n\t\t}\n\t\tpush (@content_list, $container);",
+          "endLine": 215,
+          "explanation": "Untrusted container IDs are copied directly into Container objects.",
+          "id": "didl-container",
+          "label": "Remote container identity",
+          "language": "perl",
+          "path": "lib/Net/UPnP/AV/MediaServer.pm",
+          "role": "user_input",
+          "startLine": 203
+        },
+        {
+          "code": "\tunless ($content->iscontainer()) {\n\t\treturn;\n\t}\n\n\tmy @child_content_list = $mediaServer->getcontentlist(ObjectID => $objid );\n\t\n\tif (@child_content_list <= 0) {\n\t\treturn;\n\t}\n\t\n\tforeach my $child_content (@child_content_list) {\n\t\tparse_content_directory($mediaServer, $child_content);\n\t}",
+          "endLine": 265,
+          "explanation": "Returned container IDs lead to another browse and recursive call, even when already visited.",
+          "id": "recurse-export",
+          "label": "Converter recurses without graph budget",
+          "language": "perl",
+          "path": "examples/dms2vodcast.pl",
+          "role": "root_control",
+          "startLine": 253
+        },
+        {
+          "code": "\tunless ($content->iscontainer()) {\n\t\treturn;\n\t}\n\n\tmy @child_content_list = $mediaServer->getcontentlist(ObjectID => $id );\n\t\n\tif (@child_content_list <= 0) {\n\t\treturn;\n\t}\n\t\n\tforeach my $child_content (@child_content_list) {\n\t\tget_contentlist($mediaServer, $child_content);\n\t}",
+          "endLine": 57,
+          "explanation": "The checker similarly browses every child without depth/visited limits.",
+          "id": "recurse-check",
+          "label": "Checker repeats same traversal",
+          "language": "perl",
+          "path": "examples/upnpavchk.pl",
+          "role": "root_control",
+          "startLine": 45
+        },
+        {
+          "code": "\tunless ($content->iscontainer()) {\n\t\treturn;\n\t}\n\n\tmy @child_content_list = $mediaServer->getcontentlist(ObjectID => $id );\n\t\n\tif (@child_content_list <= 0) {\n\t\treturn;\n\t}\n\t\n\t$indent++;\n\tforeach my $child_content (@child_content_list) {\n\t\tprint_content($mediaServer, $child_content, $indent);\n\t}",
+          "endLine": 79,
+          "explanation": "The dumper grows recursion and indentation for cyclic or arbitrarily deep containers.",
+          "id": "recurse-dump",
+          "label": "Dumper repeats same traversal",
+          "language": "perl",
+          "path": "examples/upnpavdump.pl",
+          "role": "root_control",
+          "startLine": 66
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Direct current-source trace establishes input, absent local control and outcome; no live deployment or runtime reproduction was assumed."
+      },
+      "findingId": "csf_381a1917a6cb670ec36958d5",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:840f944c894fcaeecbed4df6e42c2d635feee7c5eacf8d1534c6ee813f70f177"
+      },
+      "identity": {
+        "anchor": "cyclic-media-containers-cause-unbounded-recursive-traversal"
+      },
+      "locations": [
+        {
+          "endLine": 264,
+          "path": "examples/dms2vodcast.pl",
+          "role": "root_control",
+          "startLine": 257
+        },
+        {
+          "endLine": 56,
+          "path": "examples/upnpavchk.pl",
+          "role": "root_control",
+          "startLine": 49
+        },
+        {
+          "endLine": 78,
+          "path": "examples/upnpavdump.pl",
+          "role": "root_control",
+          "startLine": 70
+        },
+        {
+          "endLine": 215,
+          "path": "lib/Net/UPnP/AV/MediaServer.pm",
+          "role": "user_input",
+          "startLine": 203
+        }
+      ],
+      "occurrenceId": "occ_f78975b9487a6569cd429050",
+      "preventiveControls": [
+        "Centralize and document this boundary's explicit safety invariant."
+      ],
+      "provenance": {
+        "candidateId": "focused-recursion",
+        "originalCandidates": [
+          {
+            "attacker_prerequisites": "Victim runs recursive example against LAN malicious MediaServer.",
+            "candidateId": "focused-recursion",
+            "confidence": "high",
+            "cwe": "CWE-674",
+            "impact": "Self-reference/deep chains cause nontermination/resource exhaustion; requested_count only caps converted items.",
+            "remediation": "Per-device visited IDs, depth/node/request/time budgets; update POD copies.",
+            "severity": "medium",
+            "source_to_sink": "MediaServer.pm:203-215 container ID -> dms2vodcast.pl:257-265 / upnpavchk.pl:49-56 / upnpavdump.pl:70-78 recursively browse with no visited/depth/nodes budget.",
+            "title": "Untrusted ContentDirectory cycles cause unbounded recursive traversal"
+          },
+          {
+            "attacker_prerequisites": "Victim runs recursive example against LAN malicious MediaServer.",
+            "candidateId": "focused-recursion",
+            "confidence": "high",
+            "cwe": "CWE-674",
+            "impact": "Self-reference/deep chains cause nontermination/resource exhaustion; requested_count only caps converted items.",
+            "remediation": "Per-device visited IDs, depth/node/request/time budgets; update POD copies.",
+            "severity": "medium",
+            "source_to_sink": "MediaServer.pm:203-215 container ID -> dms2vodcast.pl:257-265 / upnpavchk.pl:49-56 / upnpavdump.pl:70-78 recursively browse with no visited/depth/nodes budget.",
+            "title": "Untrusted ContentDirectory cycles cause unbounded recursive traversal"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Track visited IDs per device and bound depth, nodes, requests and elapsed time in all example walkers and repeated POD traversal examples.",
+      "remediationTests": [
+        "Self-referential and two-node container cycles terminate.",
+        "A deep acyclic chain stops at the documented depth/node budget."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "didl-container",
+          "recurse-export",
+          "recurse-check",
+          "recurse-dump"
+        ],
+        "summary": "Remote DIDL container IDs are copied into objects and passed back as ObjectID by every recursive call. None of the three example walkers tracks already-visited containers; dms2vodcast requested_count limits conversions only."
+      },
+      "ruleId": "cyclic-media-traversal",
+      "severity": {
+        "changeConditions": "Automatic processing in a long-running service or demonstrated stronger downstream impact would raise severity; strict process isolation and budgets reduce it.",
+        "level": "low",
+        "rationale": "Nontermination/resource exhaustion affects explicitly run example clients. This narrower deployment lowers severity despite direct source reachability."
+      },
+      "summary": "A MediaServer can return a container referring to the requested ObjectID or an endless chain. The recursive examples repeatedly browse it with no visited set or depth/node/request cap.",
+      "taxonomy": {
+        "category": "Unbounded traversal of remote object graph",
+        "cwe": [
+          "CWE-674"
+        ]
+      },
+      "title": "Cyclic media containers cause unbounded recursive traversal",
+      "validation": {
+        "assertions": [
+          "Remote DIDL container IDs are copied into objects and passed back as ObjectID by every recursive call. None of the three example walkers tracks already-visited containers; dms2vodcast requested_count limits conversions only.",
+          "Requires the operator to run a recursive example against an attacker-controlled discoverable MediaServer. Normal library getcontentlist performs one bounded sequence of requests rather than recursive traversal."
+        ],
+        "evidenceRefs": [
+          "didl-container",
+          "recurse-export",
+          "recurse-check",
+          "recurse-dump"
+        ],
+        "limitations": [
+          "Offline static analysis only; no application code, exploit input or network target executed."
+        ],
+        "method": "Independent parent static source trace after worker discovery",
+        "summary": "Parent verified the actual entrypoint, transformation, missing control and sink in current local source."
+      }
+    },
+    {
+      "attackPath": {
+        "dataflow": {
+          "evidenceRefs": [
+            "soap-decode",
+            "didl-item",
+            "filename",
+            "rss-input",
+            "rss-output"
+          ],
+          "summary": "ActionResponse.pm:118-120 decode -> MediaServer.pm:223-227 title -> dms2vodcast.pl:321-325 info -> :210-217 raw title/enclosure filename interpolation."
+        },
+        "evidenceRefs": [
+          "soap-decode",
+          "didl-item",
+          "filename",
+          "rss-input",
+          "rss-output"
+        ],
+        "limitations": [
+          "Deployment-specific impact was not verified."
+        ],
+        "reachability": {
+          "summary": "Operator runs dms2vodcast and item conversion succeeds or a corresponding nonempty output file already exists; feed publication/consumption is external. A title containing closing RSS title markup can survive the regex extraction."
+        },
+        "summary": "When a malicious media item is included in output, device title and generated filename are interpolated directly into RSS. Crafted title markup or attribute quotes can corrupt the feed or add unintended XML fields."
+      },
+      "codeEvidence": [
+        {
+          "code": "\t$res_content = $http_res->getcontent();\n\tif ($res_content =~ m/<.*Response[^>]*>\\s*(.*)\\s*<\\/.*Response>/si) {\n\t\t$soap_response = $1;\n\t}\n\t\n\twhile ($soap_response =~ m/<([^>]*)>([^<]*)<\\/[^>]*>/sg) {\n\t\t$arg_name = $1;\n\t\tif (0 < index($arg_name, ' ')) {\n\t\t\t@arg_name_token = split(/ /, $arg_name);\n\t\t\tif (0 < @arg_name_token) {\n\t\t\t\t$arg_name = $arg_name_token[0];\n\t\t\t}\n\t\t}\n\t\t$arg_value = $2;\n\t\t$arg_value = Net::UPnP::HTTP::xmldecode($arg_value);\n\t\t$argument_list{$arg_name} = $arg_value;\n\t}\n\t\n\treturn \\%argument_list;",
+          "endLine": 123,
+          "explanation": "Escaped result content is decoded to text consumed by the DIDL parser.",
+          "id": "soap-decode",
+          "label": "SOAP Result entity decoding",
+          "language": "perl",
+          "path": "lib/Net/UPnP/ActionResponse.pm",
+          "role": "user_input",
+          "startLine": 105
+        },
+        {
+          "code": "\twhile ($result =~ m/<item(.*?)<\\/item>/sgi) {\n\t\t$content = $1;\n\t\t$item= Net::UPnP::AV::Item->new();\n\t\tif ($content =~ m/id=\\\"(.*?)\\\"/si) {\n\t\t\t$item->setid($1);\n\t\t}\n\t\tif ($content =~ m/<dc:title>(.*)<\\/dc:title>/si) {\n\t\t\t$item->settitle($1);\n\t\t}\n\t\tif ($content =~ m/<dc:date>(.*)<\\/dc:date>/si) {\n\t\t\t$item->setdate($1);\n\t\t}\n\t\tif ($content =~ m/<res[^>]*>(.*?)<\\/res>/si) {\n\t\t\t$item->seturl(Net::UPnP::HTTP::xmldecode($1));\n\t\t}\n\t\tif ($content =~ m/protocolInfo=\\\"http-get:[^:]*:([^:]*):.*\\\"/si) {\n\t\t\t$item->setcontenttype($1);\n\t\t}\n\t\telsif ($content =~ m/protocolInfo=\\\"[^:]*:[^:]:([^:]*):.*\\\"/si) {\n\t\t\t$item->setcontenttype($1);\n\t\t}\n\t\tpush (@content_list, $item);",
+          "endLine": 241,
+          "explanation": "Regex extraction accepts markup-like title text and sets item fields.",
+          "id": "didl-item",
+          "label": "Title extracted without validation",
+          "language": "perl",
+          "path": "lib/Net/UPnP/AV/MediaServer.pm",
+          "role": "propagation",
+          "startLine": 220
+        },
+        {
+          "code": "\tmy $dev = $mediaServer->getdevice();\n\tmy $dev_friendlyname = $dev->getfriendlyname();\n\tmy $dev_udn = $dev->getudn();\n\t$dev_udn =~ s/:/-/g;\n\t\n\tmy $filename_body = $dev_friendlyname . \"_\" . $dev_udn . \"_\" . $objid;\n\t$filename_body =~ s/ //g;\n\t$filename_body =~ s/\\//-/g;\n\t\n\tmy $mpeg2_file_name = $filename_body . \".mpeg\";\n\tmy $mpeg4_file_name = $filename_body . \"_\" . $mp4_format . \".m4v\";\n\tmy $output_mpeg4_file_name = $base_directory . $mpeg4_file_name;",
+          "endLine": 291,
+          "explanation": "Filename cleanup does not escape XML-significant characters for later RSS output.",
+          "id": "filename",
+          "label": "Remote names retained in filenames",
+          "language": "perl",
+          "path": "examples/dms2vodcast.pl",
+          "role": "propagation",
+          "startLine": 280
+        },
+        {
+          "code": "\tmy %info = (\n\t\t'objid' => $objid,\n\t\t'title' => $title,\n\t\t'file_name' => $mpeg4_file_name,\n\t\t'file_size' => $mpeg4_file_size,\n\t);\n\t",
+          "endLine": 327,
+          "explanation": "Converted item info stores the same remote title and derived filename.",
+          "id": "rss-input",
+          "label": "Item title and filename preserved",
+          "language": "perl",
+          "path": "examples/dms2vodcast.pl",
+          "role": "propagation",
+          "startLine": 321
+        },
+        {
+          "code": "\t$title = $content->{'title'};\t\n\t$fname = $content->{'file_name'};\n\t$fsize = $content->{'file_size'};\n\n$mp4_link = $rss_base_url . $fname;\n$mp4_item = <<\"RSS_MP4_ITEM\";\n<item>\n<title>$title</title>\n<guid isPermalink=\"false\">$mp4_link</guid>\n<enclosure url=\"$mp4_link\" length=\"$fsize\" type=\"video/mp4\" />\n</item>\nRSS_MP4_ITEM\n\tprint RSS_FILE $mp4_item;\n}\n\n$rss_footer = <<\"RSS_FOOTER\";",
+          "endLine": 220,
+          "explanation": "Title becomes element content and the link becomes an attribute without XML escaping.",
+          "id": "rss-output",
+          "label": "Raw XML heredoc interpolation",
+          "language": "perl",
+          "path": "examples/dms2vodcast.pl",
+          "role": "root_control",
+          "startLine": 205
+        }
+      ],
+      "confidence": {
+        "level": "high",
+        "rationale": "Direct current-source trace establishes input, absent local control and outcome; no live deployment or runtime reproduction was assumed."
+      },
+      "findingId": "csf_15cf3d0c32c55ca8dd21bdc8",
+      "fingerprints": {
+        "algorithm": "codex-security/v1",
+        "primary": "codex-security/v1:sha256:5c5de532c380236ebf4ba40a114e2d89984436e0099916673633932f089f5203"
+      },
+      "identity": {
+        "anchor": "media-metadata-can-alter-generated-rss-xml-structure"
+      },
+      "locations": [
+        {
+          "endLine": 217,
+          "path": "examples/dms2vodcast.pl",
+          "role": "root_control",
+          "startLine": 210
+        },
+        {
+          "endLine": 227,
+          "path": "lib/Net/UPnP/AV/MediaServer.pm",
+          "role": "user_input",
+          "startLine": 223
+        },
+        {
+          "endLine": 325,
+          "path": "examples/dms2vodcast.pl",
+          "role": "propagation",
+          "startLine": 321
+        }
+      ],
+      "occurrenceId": "occ_4b02221e29fc9b39a073deea",
+      "preventiveControls": [
+        "Centralize and document this boundary's explicit safety invariant."
+      ],
+      "provenance": {
+        "candidateId": "focused-rss",
+        "originalCandidates": [
+          {
+            "attacker_prerequisites": "Victim includes malicious media item in generated feed after conversion or preexisting output.",
+            "candidateId": "focused-rss",
+            "confidence": "high",
+            "counterevidence": [
+              "Requires successful item inclusion; malformed DIDL accepted by regex.",
+              "Unix slash replacement defeats ordinary ../ traversal."
+            ],
+            "cwe": "CWE-91",
+            "impact": "RSS structure/fields corruption, not established script execution.",
+            "remediation": "XML serializer escaping text and attributes; opaque filenames.",
+            "severity": "low",
+            "source_to_sink": "ActionResponse.pm:118-120 decode -> MediaServer.pm:223-227 title -> dms2vodcast.pl:321-325 info -> :210-217 raw title/enclosure filename interpolation.",
+            "title": "Media metadata is inserted into generated RSS without XML escaping"
+          },
+          {
+            "attacker_prerequisites": "Victim includes malicious media item in generated feed after conversion or preexisting output.",
+            "candidateId": "focused-rss",
+            "confidence": "high",
+            "counterevidence": [
+              "Requires successful item inclusion; malformed DIDL accepted by regex.",
+              "Unix slash replacement defeats ordinary ../ traversal."
+            ],
+            "cwe": "CWE-91",
+            "impact": "RSS structure/fields corruption, not established script execution.",
+            "remediation": "XML serializer escaping text and attributes; opaque filenames.",
+            "severity": "low",
+            "source_to_sink": "ActionResponse.pm:118-120 decode -> MediaServer.pm:223-227 title -> dms2vodcast.pl:321-325 info -> :210-217 raw title/enclosure filename interpolation.",
+            "title": "Media metadata is inserted into generated RSS without XML escaping"
+          }
+        ],
+        "source": "local_plugin"
+      },
+      "remediation": "Use an XML serializer with automatic text/attribute escaping and generate opaque local filenames rather than embedding device-controlled metadata.",
+      "remediationTests": [
+        "Titles containing angle brackets, ampersands and quotes remain literal XML text.",
+        "Enclosure filenames with quotes cannot create additional attributes/elements."
+      ],
+      "rootCause": {
+        "evidenceRefs": [
+          "soap-decode",
+          "didl-item",
+          "filename",
+          "rss-input",
+          "rss-output"
+        ],
+        "summary": "SOAP entity-decoded DIDL is regex-extracted rather than validated; its title enters the item info hash unchanged, then a heredoc emits it as XML. Filename substitutions remove slashes/spaces but leave XML-significant quotes and angle brackets."
+      },
+      "ruleId": "rss-metadata-injection",
+      "severity": {
+        "changeConditions": "Automatic processing in a long-running service or demonstrated stronger downstream impact would raise severity; strict process isolation and budgets reduce it.",
+        "level": "low",
+        "rationale": "Confirmed effect is generated feed integrity loss. Downstream script execution and arbitrary file traversal are not established; successful inclusion is an additional prerequisite."
+      },
+      "summary": "When a malicious media item is included in output, device title and generated filename are interpolated directly into RSS. Crafted title markup or attribute quotes can corrupt the feed or add unintended XML fields.",
+      "taxonomy": {
+        "category": "Missing XML text and attribute escaping",
+        "cwe": [
+          "CWE-91"
+        ]
+      },
+      "title": "Media metadata can alter generated RSS XML structure",
+      "validation": {
+        "assertions": [
+          "SOAP entity-decoded DIDL is regex-extracted rather than validated; its title enters the item info hash unchanged, then a heredoc emits it as XML. Filename substitutions remove slashes/spaces but leave XML-significant quotes and angle brackets.",
+          "Operator runs dms2vodcast and item conversion succeeds or a corresponding nonempty output file already exists; feed publication/consumption is external. A title containing closing RSS title markup can survive the regex extraction."
+        ],
+        "counterEvidence": [
+          "Requires successful item inclusion; malformed DIDL accepted by regex.",
+          "Unix slash replacement defeats ordinary ../ traversal."
+        ],
+        "evidenceRefs": [
+          "soap-decode",
+          "didl-item",
+          "filename",
+          "rss-input",
+          "rss-output"
+        ],
+        "limitations": [
+          "Offline static analysis only; no application code, exploit input or network target executed."
+        ],
+        "method": "Independent parent static source trace after worker discovery",
+        "summary": "Parent verified the actual entrypoint, transformation, missing control and sink in current local source."
+      }
+    }
+  ],
+  "scanId": "2c7c7084-978d-4241-b23d-b28670a7edb9",
+  "schemaVersion": "1.0"
+}
