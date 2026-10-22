@@ -8,6 +8,7 @@ use strict;
 use warnings;
 
 use Socket;
+use Carp qw(croak);
 
 use Net::UPnP;
 use Net::UPnP::HTTP;
@@ -32,8 +33,20 @@ sub search {
 	my %args = (
 		st => 'upnp:rootdevice',	
 		mx => 3,
+		max_packets => 256,
+		max_devices => 64,
 		@_,
 	);
+	$this->{error} = '';
+	croak 'Invalid discovery mx' unless defined($args{mx}) && $args{mx} =~ /\A\d+(?:\.\d+)?\z/;
+	croak 'Invalid discovery mx' unless POSIX::isfinite(0 + $args{mx}) && POSIX::isfinite(2 * $args{mx});
+	foreach my $key (qw(max_packets max_devices)) {
+		croak "Invalid discovery $key" unless defined($args{$key})
+			&& $args{$key} =~ /\A\d+\z/ && POSIX::isfinite(0 + $args{$key}) && $args{$key} > 0;
+	}
+	return () unless $args{mx} > 0;
+	my $deadline = Net::UPnP::HTTP::_now() + $args{mx} * 2;
+	my ($packets, %seen_location) = (0);
 	my(
 		@dev_list,
 		$ssdp_header,
@@ -64,10 +77,13 @@ SSDP_SEARCH_MSG
 	$ssdp_header =~ s/\r//g;
 	$ssdp_header =~ s/\n/\r\n/g;
 
-	socket(SSDP_SOCK, AF_INET, SOCK_DGRAM, getprotobyname('udp'));
+	socket(my $ssdp_sock, AF_INET, SOCK_DGRAM, getprotobyname('udp')) or return ();
 	$ssdp_mcast = sockaddr_in($Net::UPnP::SSDP_PORT, inet_aton($Net::UPnP::SSDP_ADDR));
 
-	send(SSDP_SOCK, $ssdp_header, 0, $ssdp_mcast);
+	unless (send($ssdp_sock, $ssdp_header, 0, $ssdp_mcast)) {
+		close($ssdp_sock);
+		return ();
+	}
 
 	if ($Net::UPnP::DEBUG) {
 		print "$ssdp_header\n";
@@ -76,9 +92,16 @@ SSDP_SEARCH_MSG
 	@dev_list = ();
 	
 	$rin = '';
-	vec($rin, fileno(SSDP_SOCK), 1) = 1;
-	while( select($rout = $rin, undef, undef, ($args{mx} * 2)) ) {
-		recv(SSDP_SOCK, $ssdp_res_msg, 4096, 0);
+	vec($rin, fileno($ssdp_sock), 1) = 1;
+	while (1) {
+		my $remaining = $deadline - Net::UPnP::HTTP::_now();
+		last if $remaining <= 0;
+		last unless select($rout = $rin, undef, undef, $remaining) > 0;
+		last unless defined recv($ssdp_sock, $ssdp_res_msg, 4096, 0);
+		if (++$packets > $args{max_packets}) {
+			$this->{error} = 'Discovery packet limit exceeded';
+			last;
+		}
 		
 		print "$ssdp_res_msg" if ($Net::UPnP::DEBUG);
 		
@@ -86,6 +109,7 @@ SSDP_SEARCH_MSG
 			next;
 		}		
 		$dev_location = $1;
+		next if $seen_location{$dev_location}++;
 		print "dev_location=$dev_location\n" if ($Net::UPnP::DEBUG);
                 unless ($dev_location =~ m{http://([0-9a-z.-]+)(?::(\d+))?/(.*)}i) {
                         print "bad dev_location: $dev_location\n" if ($Net::UPnP::DEBUG);
@@ -96,7 +120,7 @@ SSDP_SEARCH_MSG
 		$dev_path = '/' . $3;
 		print "dev_addr=$dev_addr dev_port=$dev_port dev_path=$dev_path\n" if ($Net::UPnP::DEBUG);
 		
-		$http_req = Net::UPnP::HTTP->new();
+		$http_req = Net::UPnP::HTTP->new(deadline => $deadline);
 		$post_res = $http_req->post($dev_addr, $dev_port, "GET", $dev_path, "", "");
 		next if ! $post_res;
 		
@@ -118,13 +142,19 @@ SSDP_SEARCH_MSG
 	 	}
 
 		push(@dev_list, $dev);
+		if (@dev_list >= $args{max_devices}) {
+			$this->{error} = 'Discovery device limit reached';
+			last;
+		}
 		
 	}
 
-	close(SSDP_SOCK);
+	close($ssdp_sock);
 	
 	@dev_list;
 }
+
+sub geterror { $_[0]->{error} || '' }
 
 1;
 
