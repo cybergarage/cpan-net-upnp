@@ -1,0 +1,153 @@
+{
+  "completeness": "partial",
+  "deferred": [
+    {
+      "candidate": {
+        "attacker": "LAN MediaServer controls description and Browse metadata",
+        "candidateId": "base-001",
+        "confidence": "medium",
+        "counterevidence": [
+          "Optional example only; video MIME filter.",
+          "Filename substitutions leave shell metacharacters.",
+          "Shell.pm not vendored/installed in checked local locations; exact semantics unavailable; no execution."
+        ],
+        "cwe": "CWE-78",
+        "impact": "Command execution with invoking user permissions conditional on installed Shell command-string behavior.",
+        "locations": [
+          {
+            "code": "use Shell qw(curl ffmpeg);",
+            "path": "examples/dms2vodcast.pl",
+            "startLine": 6
+          },
+          {
+            "code": "$curl_opt = \"\\\"$url\\\" -o \\\"$mpeg2_file_name\\\"\";",
+            "path": "examples/dms2vodcast.pl",
+            "startLine": 294
+          },
+          {
+            "code": "ffmpeg($ffmpeg_opt);",
+            "path": "examples/dms2vodcast.pl",
+            "startLine": 306
+          }
+        ],
+        "remediation": "List-form execution, safe generated filenames, URL schemes and exit checks.",
+        "severity": "high",
+        "source_to_sink": "SSDP -> description/Browse -> MediaServer::getcontentlist decoded URL/ID -> dms2vodcast URL/friendlyName/UDN/ID in Shell-imported curl/ffmpeg command strings.",
+        "title": "Untrusted media metadata enters shell command strings in dms2vodcast"
+      },
+      "candidateId": "base-001",
+      "id": "base-001",
+      "reason": "Source trace confirms remote values reach Shell command option strings, but Shell.pm is absent from the repository and checked local installations. Exact argument quoting/interpreter behavior remains unverified; command execution is not a confirmed finding."
+    }
+  ],
+  "documentType": "codex-security.coverage",
+  "excludePaths": [],
+  "explicitExclusions": [],
+  "includePaths": [
+    "."
+  ],
+  "inventoryStrategy": "repository",
+  "mode": "repository",
+  "openQuestions": [
+    {
+      "followUpPrompt": "Provide the exact installed Shell.pm implementation/version used with examples/dms2vodcast.pl:294-306, then trace metadata to process execution offline before rating command execution.",
+      "question": "Which Shell.pm version and quoting behavior are used by real dms2vodcast installations?"
+    },
+    {
+      "question": "No production deployment or remote device authorization policy was supplied. Impact on specific loopback services and feed consumers remains deployment-dependent."
+    }
+  ],
+  "scanId": "2c7c7084-978d-4241-b23d-b28670a7edb9",
+  "schemaVersion": "1.0",
+  "surfaces": [
+    {
+      "disposition": "reported",
+      "id": "unbounded-http-duration",
+      "label": "Device HTTP responses can stall discovery indefinitely",
+      "notes": "`search()` synchronously forwards network-selected LOCATION to `post()`. Blocking connect/write/header/body reads have no absolute deadline; the UDP `select` timeout is suspended while `post()` runs.",
+      "receiptRefs": [],
+      "riskArea": "Missing network transaction deadline"
+    },
+    {
+      "disposition": "reported",
+      "id": "unbounded-http-buffering",
+      "label": "Device HTTP responses can exhaust caller memory",
+      "notes": "`post()` reads complete lines, appends headers and EOF/chunked bodies, and passes peer-selected Content-Length/chunk sizes directly to `read()`. There is no maximum line/header/chunk/body budget before buffering.",
+      "receiptRefs": [],
+      "riskArea": "Unbounded response buffering"
+    },
+    {
+      "disposition": "reported",
+      "id": "ssdp-destination-policy",
+      "label": "SSDP responses can trigger blind requests to loopback services",
+      "notes": "`recv()` discards sender provenance; URL-pattern matching is the only destination gate. Parsed host/port/path reach `inet_aton()` and `connect()` without a resolved-address or peer-origin policy. Service endpoint construction likewise accepts absolute cross-origin URLs.",
+      "receiptRefs": [],
+      "riskArea": "Unrestricted discovery-derived request destination"
+    },
+    {
+      "disposition": "reported",
+      "id": "unbounded-ssdp-search",
+      "label": "Repeated SSDP packets keep discovery running and growing",
+      "notes": "The full timeout is recomputed for each `select()` iteration rather than measured against a fixed end time. Packet count, fetch count and result count are unbounded, and responses are not deduplicated before fetching/appending.",
+      "receiptRefs": [],
+      "riskArea": "Missing discovery duration and result budgets"
+    },
+    {
+      "disposition": "reported",
+      "id": "unbounded-gateway-enumeration",
+      "label": "Gateway success responses cause endless mapping enumeration",
+      "notes": "The unconditional loop stops only on peer-supplied non-200 status, increments the index and pushes every response without an entry or elapsed-time cap.",
+      "receiptRefs": [],
+      "riskArea": "Peer-controlled enumeration termination"
+    },
+    {
+      "disposition": "reported",
+      "id": "cyclic-media-traversal",
+      "label": "Cyclic media containers cause unbounded recursive traversal",
+      "notes": "Remote DIDL container IDs are copied into objects and passed back as ObjectID by every recursive call. None of the three example walkers tracks already-visited containers; dms2vodcast requested_count limits conversions only.",
+      "receiptRefs": [],
+      "riskArea": "Unbounded traversal of remote object graph"
+    },
+    {
+      "disposition": "reported",
+      "id": "rss-metadata-injection",
+      "label": "Media metadata can alter generated RSS XML structure",
+      "notes": "SOAP entity-decoded DIDL is regex-extracted rather than validated; its title enters the item info hash unchanged, then a heredoc emits it as XML. Filename substitutions remove slashes/spaces but leave XML-significant quotes and angle brackets.",
+      "receiptRefs": [],
+      "riskArea": "Missing XML text and attribute escaping"
+    },
+    {
+      "candidateId": "base-001",
+      "disposition": "needs_follow_up",
+      "id": "converter-shell-boundary",
+      "label": "Converter Shell execution boundary",
+      "notes": "examples/dms2vodcast.pl:6,272-306 imports external Shell and passes remote URL/names in complete option strings. No dependency implementation/version is available offline. Original candidate retained in deferred; no confirmed RCE claim.",
+      "receiptRefs": [],
+      "riskArea": "Potential command injection"
+    },
+    {
+      "disposition": "rejected",
+      "id": "xml-and-caller-authority",
+      "label": "XML parsing and generic SOAP caller authority",
+      "notes": "Device.pm:90-102, ActionResponse.pm:105-120 and HTTP.pm:188-202 use regex/literal replacements, with no entity resolver; no XXE path. Service.pm:217-245,303-319 lacks XML escaping, but generic caller APIs do not establish a distinct restricted-user authority boundary. Remote service controls itself; no additional privilege crossing established.",
+      "receiptRefs": [],
+      "riskArea": "XXE / SOAP injection / authorization"
+    },
+    {
+      "disposition": "rejected",
+      "id": "filenames",
+      "label": "Unix converter filename traversal",
+      "notes": "examples/dms2vodcast.pl:285-287 replaces every slash, defeating ordinary ../ in remote names. Windows separator behavior and local symlink attacks are not established; no arbitrary file-write claim.",
+      "receiptRefs": [],
+      "riskArea": "Path traversal"
+    },
+    {
+      "disposition": "no_issue_found",
+      "id": "secrets-build-tests",
+      "label": "Current-source secrets, build, metadata and CI",
+      "notes": "All 33 tracked current files reviewed including docs, metadata, examples and hidden workflow. No supported embedded credential/private key exposure. .github/workflows/make.yml:6-32 uses ordinary pull_request/build testing, no publication/deployment step; t/UPnP.t:8-9 only loads module. No code execution path found in core modules.",
+      "receiptRefs": [],
+      "riskArea": "Credential disclosure / CI authority"
+    }
+  ]
+}
