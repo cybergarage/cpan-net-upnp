@@ -1,5 +1,12 @@
 Revision history for Perl extension UPnP.
 
+Unreleased
+	* Thanks for Damyan Ivanov (Debian Perl Group), Slaven Rezic and Olivier Mengue
+	* Add GW::Gateway::gettotalbytesreceived(); keep gettotalbytesrecieved() as an alias (RT #123509).
+	* Fix spelling mistakes in POD (RT #123508).
+	* Fix missing "$" before condir_service in SYNOPSIS (RT #82192).
+	* Fix actrion_out_arg typo in SYNOPSIS (RT #96398).
+
 2018-12-23 Satoshi Konno <skonno@cybergarage.org>
 	* v1.4.6
         * Thank you Florian Schlichting
