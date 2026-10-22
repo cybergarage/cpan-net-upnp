@@ -271,10 +271,10 @@ sub deleteportmapping {
 }
 
 #------------------------------
-# gettotalbytesrecieved
+# gettotalbytesreceived
 #------------------------------
 
-sub gettotalbytesrecieved {
+sub gettotalbytesreceived {
 	my($this) = shift;
 	
 	my (
@@ -299,6 +299,9 @@ sub gettotalbytesrecieved {
 	
 	return $totalBytes;
 }
+
+# Backward-compatible alias for the historical misspelling (RT #123509).
+*gettotalbytesrecieved = \&gettotalbytesreceived;
 
 #------------------------------
 # gettotalbytessent
@@ -383,7 +386,7 @@ Net::UPnP::GW::Gateway - Perl extension for UPnP.
 
 =head1 DESCRIPTION
 
-The package is a extention UPnP/GW.
+The package is an extension UPnP/GW.
 
 =head1 METHODS
 
@@ -444,11 +447,12 @@ Add a new specified port mapping.
 
 Delete the specified port mapping.
 
-=item B<gettotalbytesrecieved> - Total recieved bytes.
+=item B<gettotalbytesreceived> - Total received bytes.
 
-    $gw->gettotalbytesrecieved();
+    $gw->gettotalbytesreceived();
 
-Get the total recieved bytes.
+Get the total received bytes. The misspelled name C<gettotalbytesrecieved>
+is kept as an alias for backward compatibility.
 
 =back
 
