@@ -77,6 +77,7 @@ oversize/stalled cases while preserving the normal control and each supported
 framing mode. `make test` passes 101 assertions across three test files on the
 local macOS Perl runtime. Linux/Windows and real devices were not tested here.
 
-This patch addresses four resource-control findings. It does not change the
-destination policy, recursive example traversal, RSS serialization or the
-unresolved external `Shell.pm` behavior from the audit.
+The resource-limit change described here addresses four findings. The
+subsequent destination-policy, example-traversal and RSS fixes are documented
+in [device-and-media-safety.md](device-and-media-safety.md). The external
+`Shell.pm` behavior remains unresolved.

@@ -241,7 +241,10 @@ $soap_content .= <<"SOAP_CONTENT";
 </s:Envelope>
 SOAP_CONTENT
 
-	$http_req = Net::UPnP::HTTP->new(%{$http_options || {}});
+	my %options = %{$http_options || {}};
+	my $allowed = $dev->getallowedaddresses();
+	$options{allowed_addresses} = $allowed if defined $allowed;
+	$http_req = Net::UPnP::HTTP->new(%options);
 	$post_res = $http_req->postsoap($post_addr, $post_port, $post_path, $soap_action, $soap_content);
 	$post_res ||= Net::UPnP::HTTPResponse->new();
 
@@ -315,7 +318,8 @@ $soap_content = <<"SOAP_CONTENT";
 </s:Envelope>
 SOAP_CONTENT
 
-	$http_req = Net::UPnP::HTTP->new();
+	my $allowed = $dev->getallowedaddresses();
+	$http_req = Net::UPnP::HTTP->new(defined($allowed) ? (allowed_addresses => $allowed) : ());
 	$post_res = $http_req->postsoap($post_addr, $post_port, $post_path, $soap_action, $soap_content);
 	$post_res ||= Net::UPnP::HTTPResponse->new();
 

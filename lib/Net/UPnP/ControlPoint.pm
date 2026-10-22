@@ -35,9 +35,11 @@ sub search {
 		mx => 3,
 		max_packets => 256,
 		max_devices => 64,
+		allowed_addresses => [],
 		@_,
 	);
 	$this->{error} = '';
+	my $extra_addresses = Net::UPnP::HTTP::_address_list($args{allowed_addresses});
 	croak 'Invalid discovery mx' unless defined($args{mx}) && $args{mx} =~ /\A\d+(?:\.\d+)?\z/;
 	croak 'Invalid discovery mx' unless POSIX::isfinite(0 + $args{mx}) && POSIX::isfinite(2 * $args{mx});
 	foreach my $key (qw(max_packets max_devices)) {
@@ -97,7 +99,15 @@ SSDP_SEARCH_MSG
 		my $remaining = $deadline - Net::UPnP::HTTP::_now();
 		last if $remaining <= 0;
 		last unless select($rout = $rin, undef, undef, $remaining) > 0;
-		last unless defined recv($ssdp_sock, $ssdp_res_msg, 4096, 0);
+		my $peer = recv($ssdp_sock, $ssdp_res_msg, 4096, 0);
+		last unless defined $peer;
+		my (undef, $peer_address) = sockaddr_in($peer);
+		my $peer_ip = inet_ntoa($peer_address);
+		my ($first) = unpack('C4', $peer_address);
+		my @allowed = @$extra_addresses;
+		# LAN/private and link-local peers are valid UPnP devices. Loopback,
+		# unspecified and multicast/reserved sources require explicit trust.
+		push @allowed, $peer_ip if $first > 0 && $first != 127 && $first < 224;
 		if (++$packets > $args{max_packets}) {
 			$this->{error} = 'Discovery packet limit exceeded';
 			last;
@@ -109,7 +119,9 @@ SSDP_SEARCH_MSG
 			next;
 		}		
 		$dev_location = $1;
-		next if $seen_location{$dev_location}++;
+		# A rejected advertisement from another peer must not poison the
+		# legitimate device's later advertisement of the same URL.
+		next if $seen_location{$peer_ip . "\0" . $dev_location}++;
 		print "dev_location=$dev_location\n" if ($Net::UPnP::DEBUG);
                 unless ($dev_location =~ m{http://([0-9a-z.-]+)(?::(\d+))?/(.*)}i) {
                         print "bad dev_location: $dev_location\n" if ($Net::UPnP::DEBUG);
@@ -120,9 +132,12 @@ SSDP_SEARCH_MSG
 		$dev_path = '/' . $3;
 		print "dev_addr=$dev_addr dev_port=$dev_port dev_path=$dev_path\n" if ($Net::UPnP::DEBUG);
 		
-		$http_req = Net::UPnP::HTTP->new(deadline => $deadline);
+		$http_req = Net::UPnP::HTTP->new(deadline => $deadline, allowed_addresses => \@allowed);
 		$post_res = $http_req->post($dev_addr, $dev_port, "GET", $dev_path, "", "");
-		next if ! $post_res;
+		unless ($post_res) {
+			$this->{error} = $http_req->geterror();
+			next;
+		}
 		
 		if ($Net::UPnP::DEBUG) {
 			print $post_res->getstatus() . "\n";
@@ -133,6 +148,7 @@ SSDP_SEARCH_MSG
  		$post_content = $post_res->getcontent();
 
 		$dev = Net::UPnP::Device->new();
+		$dev->setallowedaddresses(\@allowed);
  		$dev->setssdp($ssdp_res_msg);
 		$dev->setdescription($post_content);
 	

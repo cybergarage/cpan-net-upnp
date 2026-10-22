@@ -44,6 +44,19 @@ sub getssdp() {
 	$this->{$Net::UPnP::Device::_SSDP};
  }
 
+# Undefined means a manually constructed, caller-trusted device. Discovery
+# always stores an explicit policy, including an empty (deny-all) list.
+sub setallowedaddresses {
+	my ($this, $addresses) = @_;
+	$this->{allowed_addresses} = Net::UPnP::HTTP::_address_list($addresses);
+}
+
+sub getallowedaddresses {
+	my ($this) = @_;
+	return undef unless exists $this->{allowed_addresses};
+	return [@{$this->{allowed_addresses}}];
+}
+
 #------------------------------
 # description
 #------------------------------
