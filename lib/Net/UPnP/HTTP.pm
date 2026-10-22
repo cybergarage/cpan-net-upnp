@@ -45,7 +45,24 @@ sub new {
 		croak 'Invalid HTTP deadline' unless defined($this->{deadline})
 			&& $this->{deadline} =~ /\A\d+(?:\.\d+)?\z/ && isfinite(0 + $this->{deadline});
 	}
+	$this->{allowed_addresses} = _address_list($this->{allowed_addresses})
+		if exists $this->{allowed_addresses};
 	bless $this, $class;
+}
+
+# Only caller-supplied numeric IPv4 addresses may expand a discovery policy.
+sub _address_list {
+	my ($addresses) = @_;
+	croak 'Invalid allowed_addresses' unless ref($addresses) eq 'ARRAY';
+	my @copy;
+	foreach my $address (@$addresses) {
+		croak 'Invalid allowed IPv4 address' unless defined($address)
+			&& $address =~ /\A(?:\d{1,3}\.){3}\d{1,3}\z/;
+		my @octets = split(/\./, $address);
+		croak 'Invalid allowed IPv4 address' if grep { $_ > 255 } @octets;
+		push @copy, inet_ntoa(pack('C4', @octets));
+	}
+	return \@copy;
 }
 
 sub _now { clock_gettime(CLOCK_MONOTONIC) }
@@ -151,6 +168,11 @@ sub _exact {
 sub _exchange {
 	my ($this, $state, $deadline, $address, $port, $request) = @_;
 	my $resolved = _resolve($address, $deadline);
+	if (exists $this->{allowed_addresses}) {
+		my $actual = inet_ntoa($resolved);
+		die "HTTP destination not permitted\n"
+			unless grep { $_ eq $actual } @{$this->{allowed_addresses}};
+	}
 	socket(my $socket, PF_INET, SOCK_STREAM, getprotobyname('tcp'))
 		or die "HTTP socket failed: $!\n";
 	$state->{socket} = $socket;

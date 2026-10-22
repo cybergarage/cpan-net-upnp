@@ -28,7 +28,8 @@ sub discover {
     local $Net::UPnP::SSDP_PORT = $port;
     my $control = Net::UPnP::ControlPoint->new();
     my $start = time();
-    my @devices = $control->search(mx => 0.05, %{$options || {}});
+    my @devices = $control->search(mx => 0.05,
+        allowed_addresses => ['127.0.0.1'], %{$options || {}});
     my $elapsed = time() - $start;
     kill 'KILL', $pid;
     waitpid($pid, 0);
