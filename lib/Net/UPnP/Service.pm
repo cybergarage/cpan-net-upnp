@@ -175,7 +175,7 @@ sub getposturl() {
 
 sub postaction() {
 	my($this) = shift;
-	my ($action_name, $action_arg) = @_;
+	my ($action_name, $action_arg, $http_options) = @_;
 	my (
 		$dev,
 		$ctrl_url,
@@ -241,8 +241,9 @@ $soap_content .= <<"SOAP_CONTENT";
 </s:Envelope>
 SOAP_CONTENT
 
-	$http_req = Net::UPnP::HTTP->new();
+	$http_req = Net::UPnP::HTTP->new(%{$http_options || {}});
 	$post_res = $http_req->postsoap($post_addr, $post_port, $post_path, $soap_action, $soap_content);
+	$post_res ||= Net::UPnP::HTTPResponse->new();
 
 	$action_res->sethttpresponse($post_res);
 	
@@ -255,8 +256,7 @@ SOAP_CONTENT
 
 sub postcontrol() {
 	my($this) = shift;
-	my ($action_name, $action_arg) = @_;
-	return $this->postaction($action_name, $action_arg);
+	return $this->postaction(@_);
 }
 
 #------------------------------
@@ -317,6 +317,7 @@ SOAP_CONTENT
 
 	$http_req = Net::UPnP::HTTP->new();
 	$post_res = $http_req->postsoap($post_addr, $post_port, $post_path, $soap_action, $soap_content);
+	$post_res ||= Net::UPnP::HTTPResponse->new();
 
 	$query_res->sethttpresponse($post_res);
 	

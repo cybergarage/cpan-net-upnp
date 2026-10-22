@@ -29,3 +29,6 @@ META.json
 META.yml
 README
 t/UPnP.t
+t/http-limits.t
+t/network-limits.t
+docs/network-limits.md
