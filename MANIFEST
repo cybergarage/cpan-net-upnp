@@ -27,7 +27,7 @@ Makefile.PL
 MANIFEST
 META.json
 META.yml
-README
+README.md
 t/UPnP.t
 t/http-limits.t
 t/network-limits.t
