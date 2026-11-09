@@ -142,7 +142,7 @@ Net::UPnP::AV::Content - Perl extension for UPnP.
 
 =head1 DESCRIPTION
 
-The package is a extention UPnP/AV media server, and a super class of L<Net::UPnP::AV::Container> and L<Net::UPnP::AV::Item>.
+The package is an extension UPnP/AV media server, and a super class of L<Net::UPnP::AV::Container> and L<Net::UPnP::AV::Item>.
 
 =head1 METHODS
 

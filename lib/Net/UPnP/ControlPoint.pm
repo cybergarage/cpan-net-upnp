@@ -199,7 +199,7 @@ Net::UPnP::ControlPoint - Perl extension for UPnP control point.
             next;
         }
         $condir_service = $dev->getservicebyname('urn:schemas-upnp-org:service:ContentDirectory:1');
-        unless (defined(condir_service)) {
+        unless (defined($condir_service)) {
             next;
         }
         %action_in_arg = (
@@ -211,11 +211,11 @@ Net::UPnP::ControlPoint - Perl extension for UPnP control point.
                 'SortCriteria' => '',
             );
         $action_res = $condir_service->postcontrol('Browse', \%action_in_arg);
-        $actrion_out_arg = $action_res->getargumentlist();
-        unless ($actrion_out_arg->{'Result'}) {
+        $action_out_arg = $action_res->getargumentlist();
+        unless ($action_out_arg->{'Result'}) {
             next;
         }
-        $result = $actrion_out_arg->{'Result'};
+        $result = $action_out_arg->{'Result'};
         while ($result =~ m/<dc:title>(.*?)<\/dc:title>/sgi) {
             print "\t$1\n";
         }
