@@ -137,7 +137,9 @@ sub getposturl() {
 	
 	$location_url = $dev->getlocation();
 	$url_base = $dev->geturlbase();
-	$ctrl_url = $this->getcontrolurl();
+	# Use the caller's URL when given; fall back to the service's
+	# controlURL only when none is supplied (RT #21076).
+	$ctrl_url = $this->getcontrolurl() unless defined($ctrl_url) && length($ctrl_url);
 
 	#print "$location_url\n";
 	#print "$url_base\n";

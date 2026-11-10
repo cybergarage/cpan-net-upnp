@@ -36,4 +36,5 @@ lib/Net/UPnP/AV/RSS.pm
 t/destination-policy.t
 t/media-safety.t
 t/gateway-method-names.t
+t/rt-regressions.t
 docs/device-and-media-safety.md
