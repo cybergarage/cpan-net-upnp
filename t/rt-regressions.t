@@ -40,6 +40,27 @@ my $ssdp = "HTTP/1.1 200 OK\r\nLOCATION: http://10.0.0.1:5000/desc.xml\r\n\r\n";
     is($service->getposturl(''), 'http://10.0.0.1:5000/ctl/a', 'empty argument falls back to controlURL');
 }
 
+# RT #21076: exactly one "/" between the host part and a relative controlURL.
+{
+    my $dev = Net::UPnP::Device->new();
+    $dev->setdescription('<root><serviceList><service><controlURL>ctl/a</controlURL></service></serviceList></root>');
+    my ($service) = $dev->getservicelist();
+    $dev->setssdp("HTTP/1.1 200 OK\r\nLOCATION: http://10.0.0.1:5000/desc.xml\r\n\r\n");
+    is($service->getposturl(), 'http://10.0.0.1:5000/ctl/a', 'slash added when LOCATION has a path');
+    $dev->setssdp("HTTP/1.1 200 OK\r\nLOCATION: http://10.0.0.1:5000/\r\n\r\n");
+    is($service->getposturl(), 'http://10.0.0.1:5000/ctl/a', 'slash added when LOCATION is the root');
+    $dev->setssdp("HTTP/1.1 200 OK\r\nLOCATION: http://10.0.0.1\r\n\r\n");
+    is($service->getposturl(), 'http://10.0.0.1:80/ctl/a', 'default port and slash when LOCATION has no path');
+    is($service->getposturl('/ctl/b'), 'http://10.0.0.1:80/ctl/b', 'no double slash for an absolute path');
+
+    $dev->setdescription('<root><URLBase>http://10.0.0.2:6000/base/</URLBase><serviceList><service><controlURL>/ctl/a</controlURL></service></serviceList></root>');
+    ($service) = $dev->getservicelist();
+    is($service->getposturl(), 'http://10.0.0.2:6000/base/ctl/a', 'URLBase with trailing slash and absolute path');
+    $dev->setdescription('<root><URLBase>http://10.0.0.2:6000</URLBase><serviceList><service><controlURL>ctl/a</controlURL></service></serviceList></root>');
+    ($service) = $dev->getservicelist();
+    is($service->getposturl(), 'http://10.0.0.2:6000/ctl/a', 'URLBase without trailing slash and relative path');
+}
+
 # RT #88755: requests are sent as HTTP/1.1 with Host and Connection: close.
 {
     my $listener = IO::Socket::INET->new(LocalAddr => '127.0.0.1', LocalPort => 0,
