@@ -37,4 +37,5 @@ t/destination-policy.t
 t/media-safety.t
 t/gateway-method-names.t
 t/rt-regressions.t
+t/gateway-wanppp.t
 docs/device-and-media-safety.md
