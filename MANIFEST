@@ -25,6 +25,7 @@ lib/Net/UPnP/QueryResponse.pm
 lib/Net/UPnP/Service.pm
 Makefile.PL
 MANIFEST
+MANIFEST.SKIP
 META.json
 META.yml
 README.md
